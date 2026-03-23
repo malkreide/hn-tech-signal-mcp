@@ -7,6 +7,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-purple)](https://modelcontextprotocol.io/)
 [![No Auth Required](https://img.shields.io/badge/auth-no%20auth%20required-brightgreen)](https://github.com/malkreide/hn-tech-signal-mcp)
+![CI](https://github.com/malkreide/hn-tech-signal-mcp/actions/workflows/ci.yml/badge.svg)
 
 > MCP server for global tech & AI signal intelligence — aggregates HackerNews, arXiv, Lobste.rs and GitHub into a structured briefing. No API key required.
 
