@@ -13,6 +13,10 @@
 
 [🇩🇪 Deutsche Version](README.de.md)
 
+### Demo
+
+![Demo: Claude using tech_signal_digest across arXiv, HackerNews and GitHub](docs/assets/demo.svg)
+
 ---
 
 ## Overview
@@ -277,6 +281,17 @@ PYTHONPATH=src pytest tests/ -m "live"
 | `+ fedlex-mcp` | Tech discourse + Swiss regulatory context |
 | `+ global-education-mcp` | AI research trends + education policy data |
 | `+ swiss-statistics-mcp` | Tech landscape + Swiss economic/structural data |
+
+---
+
+## Safety & Limits
+
+- **Read-only:** All tools perform HTTP GET requests only — no posts, comments, votes, or writes are issued upstream.
+- **No personal data:** The server queries public tech aggregators. No PII is collected; author handles in public posts/papers are returned as-is from upstream and never enriched or cross-referenced.
+- **Rate limits:** See the [Rate Limits](#rate-limits) table. arXiv's ≤3 req/sec guidance is respected by default; GitHub search is capped at 60 req/h without a `GITHUB_TOKEN`. A request timeout is enforced per call.
+- **No bulk harvesting:** This server is built for interactive, conversational use — not for scraping or mirroring. Do not use it to bypass upstream pagination or ToS limits.
+- **Terms of service:** Data is subject to the ToS of each source — [HackerNews](https://news.ycombinator.com/), [arXiv API](https://info.arxiv.org/help/api/tou.html), [Lobste.rs](https://lobste.rs/about), [GitHub](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+- **No guarantees:** Community project, not affiliated with HackerNews / Y Combinator, arXiv / Cornell, Lobste.rs, or GitHub. Availability depends on upstream APIs.
 
 ---
 

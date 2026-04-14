@@ -13,6 +13,10 @@
 
 [🇬🇧 English Version](README.md)
 
+### Demo
+
+![Demo: Claude nutzt tech_signal_digest über arXiv, HackerNews und GitHub](docs/assets/demo.svg)
+
 ---
 
 ## Übersicht
@@ -148,6 +152,17 @@ Sofort in Claude Desktop ausprobieren:
 - **arXiv**: Neue Paper erscheinen mit bis zu 24 Stunden Verzögerung. An Wochenenden und Feiertagen verzögerte Batches.
 - **HackerNews**: Top/Best-Listen aktualisieren sich alle paar Minuten. Sehr neue Stories haben noch geringe Scores.
 - **Lobste.rs**: Kleinere Community als HN; tech-fokussiert, aber nicht alle KI-Themen abgedeckt.
+
+---
+
+## Sicherheit & Limiten
+
+- **Read-only:** Alle Tools führen ausschliesslich HTTP-GET-Anfragen aus — keine Posts, Kommentare, Votes oder Schreibzugriffe nach oben.
+- **Keine Personendaten:** Der Server fragt öffentliche Tech-Aggregatoren ab. Es werden keine Personendaten erhoben; Autor:innennamen aus öffentlichen Posts/Papers werden 1:1 von der Quelle zurückgegeben und nicht angereichert oder verknüpft.
+- **Rate-Limits:** arXiv's Richtlinie von ≤3 Anfragen/Sekunde wird standardmässig respektiert; GitHub-Suche ist ohne `GITHUB_TOKEN` auf 60 Anfragen/Stunde limitiert. Pro Anfrage gilt ein Timeout.
+- **Kein Bulk-Harvesting:** Der Server ist für interaktive, dialogische Nutzung gebaut — nicht für Scraping oder Mirroring. Nicht zum Umgehen von Pagination oder ToS einsetzen.
+- **Nutzungsbedingungen:** Die Daten unterliegen den ToS der jeweiligen Quellen — [HackerNews](https://news.ycombinator.com/), [arXiv API](https://info.arxiv.org/help/api/tou.html), [Lobste.rs](https://lobste.rs/about), [GitHub](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service).
+- **Keine Garantien:** Community-Projekt, nicht affiliiert mit HackerNews / Y Combinator, arXiv / Cornell, Lobste.rs oder GitHub. Verfügbarkeit hängt von den vorgelagerten APIs ab.
 
 ---
 
