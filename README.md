@@ -231,6 +231,8 @@ PYTHONPATH=src pytest tests/ -m "live"
 
 "Show me the most starred MCP-related repos"
 → github_trending_ai(topic="mcp", sort="stars", min_stars=50)
+
+[→ More use cases by audience →](EXAMPLES.md)
 ```
 
 ---

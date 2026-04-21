@@ -142,6 +142,8 @@ Sofort in Claude Desktop ausprobieren:
 
 «Suche arXiv-Paper zu Retrieval-Augmented Generation»
 → arxiv_search(query="retrieval augmented generation RAG", limit=10)
+
+[→ Weitere Anwendungsbeispiele nach Zielgruppe →](EXAMPLES.md)
 ```
 
 ---
