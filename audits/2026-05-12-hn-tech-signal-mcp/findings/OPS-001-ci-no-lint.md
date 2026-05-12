@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **low** |
-| **Status** | in-remediation (Sprint 2) |
+| **Status** | closed (re-audit 2026-05-12) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `OPS-002` (CI Quality Gates) |
 | **Audit-Datum** | 2026-05-12 |

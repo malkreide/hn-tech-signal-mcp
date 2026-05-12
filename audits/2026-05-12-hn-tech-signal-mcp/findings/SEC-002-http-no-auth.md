@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **high** |
-| **Status** | in-remediation (Sprint 0, PR #2) |
+| **Status** | closed (re-audit 2026-05-12) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `SEC-005` (Transport Hardening) |
 | **Audit-Datum** | 2026-05-12 |

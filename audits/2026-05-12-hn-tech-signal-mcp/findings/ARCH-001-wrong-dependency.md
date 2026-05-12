@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **medium** |
-| **Status** | in-remediation (Sprint 1) |
+| **Status** | closed (re-audit 2026-05-12) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `ARCH-003` / `SDK-001` (Dependency Declaration Honesty) |
 | **Audit-Datum** | 2026-05-12 |
