@@ -28,7 +28,17 @@ jobs:
         run: uv pip install --system -e ".[dev]" || uv pip install --system -e .
 
       - name: Install test deps
-        run: uv pip install --system pytest pytest-asyncio respx
+        run: uv pip install --system pytest pytest-asyncio pytest-cov respx ruff
 
-      - name: Run unit tests (no network)
-        run: PYTHONPATH=src pytest tests/ -m "not live" -v
+      - name: Lint (ruff check)
+        run: ruff check src tests
+
+      - name: Format check (ruff format)
+        run: ruff format --check src tests
+
+      - name: Run unit tests (no network) with coverage
+        # Threshold locks in current floor (~49%). Coverage is intentionally
+        # limited because the tool bodies depend on live HTTP and are only
+        # exercised by the 'live' marker, which is deselected in CI. Raise the
+        # threshold once HTTP fixtures (respx) are added.
+        run: PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=45

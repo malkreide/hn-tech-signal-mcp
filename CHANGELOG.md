@@ -21,7 +21,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `MCP_HOST` environment variable (default `127.0.0.1`).
 - `MCP_BEARER_TOKEN` environment variable (required for public bind).
 - `LOG_LEVEL` environment variable (default `INFO`).
-- Regression tests for SEC-001, SEC-002, SEC-003, SDK-001 and OBS-001 in `tests/test_server.py` (25 unit tests total).
+- `SECURITY.md` describing the vulnerability reporting process.
+- `.github/dependabot.yml` for weekly pip and monthly github-actions updates.
+- `.github/CODEOWNERS` for review routing.
+- CI now runs `ruff check`, `ruff format --check` and `pytest --cov` with a 45 % floor.
+- Regression tests for all 11 audit findings in `tests/test_server.py` (30 unit tests total).
+
+### Changed
+- **SEC-004:** `arxiv_search.category` is now validated against the same `ARXIV_AI_CATEGORIES` whitelist as `arxiv_latest.categories`. Empty string normalises to `None`.
+- **SCALE-001:** The in-memory TTL cache is now an `OrderedDict` with LRU eviction at `_CACHE_MAX_ENTRIES = 512` entries. Prevents unbounded memory growth in long-running `streamable_http` mode.
+- **SDK-002:** Renamed the module-level FastMCP instance from `mcp` to `server` to stop shadowing the `mcp` SDK package import.
+- Long error and cache-key strings reformatted for the new `ruff format` gate.
 
 ## [0.1.0] — 2026-03-22
 

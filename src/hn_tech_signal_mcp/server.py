@@ -22,14 +22,15 @@ import json
 import logging
 import os
 import time
+from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Any, Optional
+from xml.etree.ElementTree import Element as _XmlElement
 
 import httpx
 from defusedxml import ElementTree as _DefusedET
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-from xml.etree.ElementTree import Element as _XmlElement
 
 logger = logging.getLogger("hn-tech-signal-mcp")
 
@@ -37,6 +38,7 @@ logger = logging.getLogger("hn-tech-signal-mcp")
 def _now_iso() -> str:
     """Timezone-aware UTC timestamp string."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -51,8 +53,9 @@ GITHUB_BASE_URL = "https://api.github.com"
 DEFAULT_TIMEOUT = 20.0
 ARXIV_AI_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.NE", "stat.ML"]
 
-# In-memory TTL cache
-_cache: dict[str, tuple[float, Any]] = {}
+# In-memory TTL cache, LRU-bounded to prevent unbounded growth in long-running HTTP mode.
+_CACHE_MAX_ENTRIES = 512
+_cache: "OrderedDict[str, tuple[float, Any]]" = OrderedDict()
 CACHE_TTL: dict[str, int] = {
     "hn_top": 600,
     "hn_search": 300,
@@ -70,18 +73,23 @@ def _cache_get(key: str, ttl_type: str) -> Optional[Any]:
     if time.time() - ts > CACHE_TTL.get(ttl_type, 600):
         del _cache[key]
         return None
+    _cache.move_to_end(key)
     return data
 
 
 def _cache_set(key: str, data: Any) -> None:
+    if key in _cache:
+        _cache.move_to_end(key)
     _cache[key] = (time.time(), data)
+    while len(_cache) > _CACHE_MAX_ENTRIES:
+        _cache.popitem(last=False)
 
 
 # ---------------------------------------------------------------------------
 # Server
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP(
+server = FastMCP(
     "hn_tech_signal_mcp",
     instructions=(
         "Tech & AI intelligence server aggregating signals from HackerNews, arXiv, "
@@ -135,7 +143,10 @@ def _handle_error(e: Exception, source: str = "") -> str:
     if isinstance(e, httpx.HTTPStatusError):
         code = e.response.status_code
         if code == 429:
-            return f"{prefix}Error: Rate limit exceeded. For GitHub, set GITHUB_TOKEN for higher limits."
+            return (
+                f"{prefix}Error: Rate limit exceeded. "
+                "For GitHub, set GITHUB_TOKEN for higher limits."
+            )
         if code == 403:
             return f"{prefix}Error: Forbidden (HTTP 403). For GitHub, set GITHUB_TOKEN."
         return f"{prefix}Error: HTTP {code}"
@@ -148,12 +159,14 @@ def _ts_to_iso(ts: Optional[int]) -> str:
     if not ts:
         return "unknown"
     from datetime import timezone
+
     return datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 
 # ---------------------------------------------------------------------------
 # HackerNews helpers
 # ---------------------------------------------------------------------------
+
 
 async def _fetch_hn_stories(story_type: str, limit: int) -> list[dict]:
     ids: list[int] = await _get(f"{HN_BASE_URL}/{story_type}stories.json")
@@ -187,6 +200,7 @@ def _format_hn_story(s: dict) -> dict:
 # ---------------------------------------------------------------------------
 # arXiv helpers
 # ---------------------------------------------------------------------------
+
 
 def _parse_arxiv_entry(entry: _XmlElement, ns: str) -> dict:
     def t(tag: str) -> str:
@@ -235,6 +249,7 @@ async def _fetch_arxiv(search_query: str, limit: int) -> list[dict]:
 # Input models
 # ---------------------------------------------------------------------------
 
+
 class HnTopStoriesInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     feed: str = Field(
@@ -248,7 +263,12 @@ class HnTopStoriesInput(BaseModel):
 
 class HnSearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    query: str = Field(..., description="Search query (e.g. 'Claude MCP', 'LLM agents')", min_length=1, max_length=200)
+    query: str = Field(
+        ...,
+        description="Search query (e.g. 'Claude MCP', 'LLM agents')",
+        min_length=1,
+        max_length=200,
+    )
     limit: int = Field(default=10, description="Number of results (1–20)", ge=1, le=20)
     days_back: int = Field(default=7, description="Look back N days (1–365)", ge=1, le=365)
     tags: Optional[str] = Field(
@@ -282,9 +302,25 @@ class ArxivLatestInput(BaseModel):
 
 class ArxivSearchInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    query: str = Field(..., description="Search terms (e.g. 'large language models agents')", min_length=1, max_length=300)
-    category: Optional[str] = Field(default=None, description="Restrict to category (e.g. 'cs.AI'). Empty = all.")
+    query: str = Field(
+        ...,
+        description="Search terms (e.g. 'large language models agents')",
+        min_length=1,
+        max_length=300,
+    )
+    category: Optional[str] = Field(
+        default=None, description="Restrict to category (e.g. 'cs.AI'). Empty = all."
+    )
     limit: int = Field(default=10, description="Number of papers (1–20)", ge=1, le=20)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or v == "":
+            return None
+        if v not in ARXIV_AI_CATEGORIES:
+            raise ValueError(f"Invalid category '{v}'. Valid: {sorted(ARXIV_AI_CATEGORIES)}")
+        return v
 
 
 class LobstersHotInput(BaseModel):
@@ -320,9 +356,13 @@ class TechSignalDigestInput(BaseModel):
         description="Topic focus (e.g. 'MCP', 'agents', 'open source'). Empty = broad overview.",
         max_length=100,
     )
-    hn_limit: int = Field(default=5, description="HackerNews stories to include (1–10)", ge=1, le=10)
+    hn_limit: int = Field(
+        default=5, description="HackerNews stories to include (1–10)", ge=1, le=10
+    )
     arxiv_limit: int = Field(default=5, description="arXiv papers to include (1–10)", ge=1, le=10)
-    lobsters_limit: int = Field(default=5, description="Lobste.rs stories to include (1–10)", ge=1, le=10)
+    lobsters_limit: int = Field(
+        default=5, description="Lobste.rs stories to include (1–10)", ge=1, le=10
+    )
     github_limit: int = Field(default=5, description="GitHub repos to include (1–10)", ge=1, le=10)
 
 
@@ -330,9 +370,16 @@ class TechSignalDigestInput(BaseModel):
 # Tool 1: hn_top_stories
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="hn_top_stories",
-    annotations={"title": "HackerNews Top/Best/New Stories", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "HackerNews Top/Best/New Stories",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def hn_top_stories(params: HnTopStoriesInput) -> str:
     """Fetch top, best or new stories from HackerNews.
@@ -356,9 +403,14 @@ async def hn_top_stories(params: HnTopStoriesInput) -> str:
             stories = [s for s in stories if s.get("score", 0) >= params.min_score]
         stories = stories[: params.limit]
         result = json.dumps(
-            {"feed": params.feed, "fetched_at": _now_iso(),
-             "count": len(stories), "stories": [_format_hn_story(s) for s in stories]},
-            indent=2, ensure_ascii=False,
+            {
+                "feed": params.feed,
+                "fetched_at": _now_iso(),
+                "count": len(stories),
+                "stories": [_format_hn_story(s) for s in stories],
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -370,9 +422,16 @@ async def hn_top_stories(params: HnTopStoriesInput) -> str:
 # Tool 2: hn_search
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="hn_search",
-    annotations={"title": "HackerNews Full-Text Search (Algolia)", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "HackerNews Full-Text Search (Algolia)",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def hn_search(params: HnSearchInput) -> str:
     """Search HackerNews by keyword using the Algolia search API.
@@ -419,9 +478,15 @@ async def hn_search(params: HnSearchInput) -> str:
             for h in data.get("hits", [])
         ]
         result = json.dumps(
-            {"query": params.query, "days_back": params.days_back,
-             "total_found": data.get("nbHits", 0), "count": len(hits), "hits": hits},
-            indent=2, ensure_ascii=False,
+            {
+                "query": params.query,
+                "days_back": params.days_back,
+                "total_found": data.get("nbHits", 0),
+                "count": len(hits),
+                "hits": hits,
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -433,9 +498,16 @@ async def hn_search(params: HnSearchInput) -> str:
 # Tool 3: arxiv_latest
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="arxiv_latest",
-    annotations={"title": "arXiv Latest AI/ML Papers by Category", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "arXiv Latest AI/ML Papers by Category",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def arxiv_latest(params: ArxivLatestInput) -> str:
     """Fetch the most recently submitted papers from arXiv AI/ML categories.
@@ -464,11 +536,14 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
         )
         by_category = {cat: papers for cat, papers in zip(params.categories, results_raw)}
         result = json.dumps(
-            {"fetched_at": _now_iso(),
-             "categories": params.categories,
-             "total_papers": sum(len(p) for p in by_category.values()),
-             "by_category": by_category},
-            indent=2, ensure_ascii=False,
+            {
+                "fetched_at": _now_iso(),
+                "categories": params.categories,
+                "total_papers": sum(len(p) for p in by_category.values()),
+                "by_category": by_category,
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -480,9 +555,16 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
 # Tool 4: arxiv_search
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="arxiv_search",
-    annotations={"title": "arXiv Full-Text Search", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "arXiv Full-Text Search",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def arxiv_search(params: ArxivSearchInput) -> str:
     """Search arXiv for papers matching a query, sorted by submission date.
@@ -510,10 +592,15 @@ async def arxiv_search(params: ArxivSearchInput) -> str:
             search_query = f"all:{params.query}"
         papers = await _fetch_arxiv(search_query, params.limit)
         result = json.dumps(
-            {"query": params.query, "category": params.category,
-             "fetched_at": _now_iso(),
-             "count": len(papers), "papers": papers},
-            indent=2, ensure_ascii=False,
+            {
+                "query": params.query,
+                "category": params.category,
+                "fetched_at": _now_iso(),
+                "count": len(papers),
+                "papers": papers,
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -525,9 +612,16 @@ async def arxiv_search(params: ArxivSearchInput) -> str:
 # Tool 5: lobsters_hot
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="lobsters_hot",
-    annotations={"title": "Lobste.rs Hottest Tech Stories", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "Lobste.rs Hottest Tech Stories",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def lobsters_hot(params: LobstersHotInput) -> str:
     """Fetch the hottest stories from Lobste.rs, a curated tech community.
@@ -555,23 +649,30 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
                 tags = item.get("tags", [])
                 if not any(params.tag_filter.lower() in t.lower() for t in tags):
                     continue
-            stories.append({
-                "title": item.get("title", ""),
-                "url": item.get("url") or item.get("comments_url", ""),
-                "score": item.get("score", 0),
-                "comments": item.get("comment_count", 0),
-                "tags": item.get("tags", []),
-                "submitter": item.get("submitter_user", {}).get("username", ""),
-                "submitted_at": (item.get("created_at", "")[:16] or "").replace("T", " ") + " UTC",
-                "lobsters_url": item.get("comments_url", ""),
-            })
+            stories.append(
+                {
+                    "title": item.get("title", ""),
+                    "url": item.get("url") or item.get("comments_url", ""),
+                    "score": item.get("score", 0),
+                    "comments": item.get("comment_count", 0),
+                    "tags": item.get("tags", []),
+                    "submitter": item.get("submitter_user", {}).get("username", ""),
+                    "submitted_at": (item.get("created_at", "")[:16] or "").replace("T", " ")
+                    + " UTC",
+                    "lobsters_url": item.get("comments_url", ""),
+                }
+            )
             if len(stories) >= params.limit:
                 break
         result = json.dumps(
-            {"tag_filter": params.tag_filter,
-             "fetched_at": _now_iso(),
-             "count": len(stories), "stories": stories},
-            indent=2, ensure_ascii=False,
+            {
+                "tag_filter": params.tag_filter,
+                "fetched_at": _now_iso(),
+                "count": len(stories),
+                "stories": stories,
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -583,9 +684,16 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
 # Tool 6: github_trending_ai
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="github_trending_ai",
-    annotations={"title": "GitHub Trending AI/Tech Repos", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "GitHub Trending AI/Tech Repos",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def github_trending_ai(params: GithubTrendingAiInput) -> str:
     """Search GitHub for trending repositories by topic.
@@ -629,10 +737,16 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
             for r in data.get("items", [])
         ]
         result = json.dumps(
-            {"topic": params.topic, "sort": params.sort,
-             "fetched_at": _now_iso(),
-             "total_found": data.get("total_count", 0), "count": len(repos), "repos": repos},
-            indent=2, ensure_ascii=False,
+            {
+                "topic": params.topic,
+                "sort": params.sort,
+                "fetched_at": _now_iso(),
+                "total_found": data.get("total_count", 0),
+                "count": len(repos),
+                "repos": repos,
+            },
+            indent=2,
+            ensure_ascii=False,
         )
         _cache_set(cache_key, result)
         return result
@@ -644,9 +758,16 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
 # Tool 7: tech_signal_digest
 # ---------------------------------------------------------------------------
 
-@mcp.tool(
+
+@server.tool(
     name="tech_signal_digest",
-    annotations={"title": "Aggregated Tech & AI Signal Digest", "readOnlyHint": True, "destructiveHint": False, "idempotentHint": True, "openWorldHint": True},
+    annotations={
+        "title": "Aggregated Tech & AI Signal Digest",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
 )
 async def tech_signal_digest(params: TechSignalDigestInput) -> str:
     """Aggregate tech & AI signals from all four sources in one call.
@@ -668,7 +789,10 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
              Each source has label, count, and its items list.
     """
     focus_lower = params.focus.lower() if params.focus else None
-    cache_key = f"digest|{params.focus}|{params.hn_limit}|{params.arxiv_limit}|{params.lobsters_limit}|{params.github_limit}"
+    cache_key = (
+        f"digest|{params.focus}|{params.hn_limit}|{params.arxiv_limit}"
+        f"|{params.lobsters_limit}|{params.github_limit}"
+    )
     if cached := _cache_get(cache_key, "digest"):
         return cached
 
@@ -676,7 +800,8 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
         if not focus_lower:
             return items
         return [
-            item for item in items
+            item
+            for item in items
             if focus_lower in " ".join(str(item.get(f, "")) for f in fields).lower()
         ]
 
@@ -687,18 +812,20 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
             _get(f"{LOBSTERS_BASE_URL}/hottest.json"),
             _get(
                 f"{GITHUB_BASE_URL}/search/repositories",
-                {"q": "topic:llm OR topic:ai-agents OR topic:mcp stars:>=100",
-                 "sort": "updated", "order": "desc", "per_page": params.github_limit * 2},
+                {
+                    "q": "topic:llm OR topic:ai-agents OR topic:mcp stars:>=100",
+                    "sort": "updated",
+                    "order": "desc",
+                    "per_page": params.github_limit * 2,
+                },
             ),
         )
 
-        hn_stories = _matches_focus(
-            [_format_hn_story(s) for s in hn_raw], "title"
-        )[: params.hn_limit]
+        hn_stories = _matches_focus([_format_hn_story(s) for s in hn_raw], "title")[
+            : params.hn_limit
+        ]
 
-        arxiv_papers = _matches_focus(
-            arxiv_raw, "title", "abstract"
-        )[: params.arxiv_limit]
+        arxiv_papers = _matches_focus(arxiv_raw, "title", "abstract")[: params.arxiv_limit]
 
         lob_stories = _matches_focus(
             [
@@ -711,7 +838,8 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
                 }
                 for s in lob_raw
             ],
-            "title", "tags",
+            "title",
+            "tags",
         )[: params.lobsters_limit]
 
         gh_repos = _matches_focus(
@@ -726,7 +854,8 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
                 }
                 for r in gh_raw.get("items", [])
             ],
-            "name", "description",
+            "name",
+            "description",
         )[: params.github_limit]
 
         digest = {
@@ -734,8 +863,16 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
             "focus": params.focus or "broad tech & AI",
             "sources": {
                 "hn": {"label": "HackerNews", "count": len(hn_stories), "stories": hn_stories},
-                "arxiv": {"label": "arXiv (cs.AI/cs.LG/cs.CL)", "count": len(arxiv_papers), "papers": arxiv_papers},
-                "lobsters": {"label": "Lobste.rs", "count": len(lob_stories), "stories": lob_stories},
+                "arxiv": {
+                    "label": "arXiv (cs.AI/cs.LG/cs.CL)",
+                    "count": len(arxiv_papers),
+                    "papers": arxiv_papers,
+                },
+                "lobsters": {
+                    "label": "Lobste.rs",
+                    "count": len(lob_stories),
+                    "stories": lob_stories,
+                },
                 "github": {"label": "GitHub Trending", "count": len(gh_repos), "repos": gh_repos},
             },
         }
@@ -750,6 +887,7 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def _resolve_http_bind() -> tuple[str, int]:
     """Resolve MCP_HOST/MCP_PORT and refuse public bind without bearer token.
@@ -778,11 +916,11 @@ def main() -> None:
     logger.info("Starting hn-tech-signal-mcp transport=%s", transport)
     if transport == "streamable_http":
         host, port = _resolve_http_bind()
-        mcp.settings.host = host
-        mcp.settings.port = port
-        mcp.run(transport="streamable_http")
+        server.settings.host = host
+        server.settings.port = port
+        server.run(transport="streamable_http")
     else:
-        mcp.run()
+        server.run()
 
 
 if __name__ == "__main__":

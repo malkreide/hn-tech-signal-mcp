@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **low** |
-| **Status** | open |
+| **Status** | in-remediation (Sprint 2) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `OPS-003` (Supply-Chain Posture) |
 | **Audit-Datum** | 2026-05-12 |
