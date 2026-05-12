@@ -89,24 +89,31 @@ mcp = FastMCP(
 # Shared HTTP helpers
 # ---------------------------------------------------------------------------
 
-def _build_headers() -> dict[str, str]:
-    headers = {"Accept": "application/json", "User-Agent": "hn-tech-signal-mcp/0.1.0"}
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+_BASE_HEADERS = {
+    "Accept": "application/json",
+    "User-Agent": "hn-tech-signal-mcp/0.1.0",
+}
+
+
+def _headers_for(url: str) -> dict[str, str]:
+    headers = dict(_BASE_HEADERS)
+    if url.startswith(GITHUB_BASE_URL):
+        token = os.environ.get("GITHUB_TOKEN")
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
     return headers
 
 
 async def _get(url: str, params: Optional[dict] = None) -> Any:
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        r = await client.get(url, params=params, headers=_build_headers())
+        r = await client.get(url, params=params, headers=_headers_for(url))
         r.raise_for_status()
         return r.json()
 
 
 async def _get_text(url: str, params: Optional[dict] = None) -> str:
     async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        r = await client.get(url, params=params, headers=_build_headers())
+        r = await client.get(url, params=params, headers=_headers_for(url))
         r.raise_for_status()
         return r.text
 
@@ -731,11 +738,31 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
 # Entry point
 # ---------------------------------------------------------------------------
 
+def _resolve_http_bind() -> tuple[str, int]:
+    """Resolve MCP_HOST/MCP_PORT and refuse public bind without bearer token.
+
+    Default bind is 127.0.0.1. Non-loopback binds require MCP_BEARER_TOKEN
+    to prevent accidental public exposure of the server.
+    """
+    host = os.environ.get("MCP_HOST", "127.0.0.1")
+    port = int(os.environ.get("MCP_PORT", "8000"))
+    loopback = {"127.0.0.1", "localhost", "::1"}
+    if host not in loopback and not os.environ.get("MCP_BEARER_TOKEN"):
+        raise RuntimeError(
+            f"Refusing to bind streamable_http to non-loopback host '{host}' "
+            "without MCP_BEARER_TOKEN. Set MCP_BEARER_TOKEN, or bind to "
+            "127.0.0.1 and place an authenticating reverse proxy in front."
+        )
+    return host, port
+
+
 def main() -> None:
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
     if transport == "streamable_http":
-        port = int(os.environ.get("MCP_PORT", "8000"))
-        mcp.run(transport="streamable_http", port=port)
+        host, port = _resolve_http_bind()
+        mcp.settings.host = host
+        mcp.settings.port = port
+        mcp.run(transport="streamable_http")
     else:
         mcp.run()
 

@@ -5,6 +5,17 @@ All notable changes to `hn-tech-signal-mcp` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- **SEC-001:** `GITHUB_TOKEN` is now only attached to requests targeting `api.github.com`. Previously, the token was sent as `Authorization: Bearer` to **all** upstream APIs (HackerNews, Algolia, arXiv, Lobste.rs) due to a shared header builder, leaking the credential to third-party hosts.
+- **SEC-002:** The `streamable_http` transport now defaults to binding `127.0.0.1`. Non-loopback values for `MCP_HOST` require `MCP_BEARER_TOKEN` to be set; otherwise the server refuses to start. Prevents accidental public exposure of the unauthenticated HTTP endpoint.
+
+### Added
+- `MCP_HOST` environment variable (default `127.0.0.1`).
+- `MCP_BEARER_TOKEN` environment variable (required for public bind).
+- Regression tests for both security fixes in `tests/test_server.py`.
+
 ## [0.1.0] — 2026-03-22
 
 ### Added

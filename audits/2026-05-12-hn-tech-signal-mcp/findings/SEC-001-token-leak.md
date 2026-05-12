@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **critical** |
-| **Status** | open |
+| **Status** | in-remediation (Sprint 0, PR #2) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `SEC-001` (Secret Handling / Outbound Auth Scoping) |
 | **Audit-Datum** | 2026-05-12 |

@@ -111,9 +111,11 @@ Try immediately in Claude Desktop:
 
 | Variable | Default | Description |
 |---|---|---|
-| `GITHUB_TOKEN` | – | Optional. GitHub personal access token. Without it: 60 req/h. With it: 5,000 req/h. |
+| `GITHUB_TOKEN` | – | Optional. GitHub personal access token. Without it: 60 req/h. With it: 5,000 req/h. The token is only sent to `api.github.com`, never to other upstreams. |
 | `MCP_TRANSPORT` | `stdio` | Transport: `stdio` or `streamable_http` |
+| `MCP_HOST` | `127.0.0.1` | Bind host for HTTP transport. Non-loopback values require `MCP_BEARER_TOKEN`. |
 | `MCP_PORT` | `8000` | Port for HTTP transport |
+| `MCP_BEARER_TOKEN` | – | Required when `MCP_HOST` is not loopback. Shared secret to gate the HTTP endpoint. |
 
 ### Claude Desktop Configuration
 
@@ -148,9 +150,20 @@ For use via **claude.ai in the browser** (e.g. on managed workstations):
 4. In claude.ai under Settings → MCP Servers, add: `https://your-app.onrender.com/mcp`
 
 ```bash
-# Docker / local HTTP mode
+# Local HTTP mode (binds 127.0.0.1 by default)
 MCP_TRANSPORT=streamable_http MCP_PORT=8000 python -m hn_tech_signal_mcp.server
+
+# Public bind (requires bearer token, intended behind a reverse proxy that terminates TLS)
+MCP_TRANSPORT=streamable_http \
+MCP_HOST=0.0.0.0 \
+MCP_BEARER_TOKEN="$(openssl rand -hex 32)" \
+python -m hn_tech_signal_mcp.server
 ```
+
+> **Hardening:** the server refuses to bind to non-loopback hosts unless
+> `MCP_BEARER_TOKEN` is set. Run cloud deployments behind a TLS-terminating
+> reverse proxy (Render, Fly, Caddy, …) and treat `MCP_BEARER_TOKEN` as the
+> shared client secret your proxy enforces.
 
 ---
 
