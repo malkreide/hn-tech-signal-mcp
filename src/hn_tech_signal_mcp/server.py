@@ -22,15 +22,21 @@ import json
 import logging
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
-from xml.etree import ElementTree
 
 import httpx
+from defusedxml import ElementTree as _DefusedET
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from xml.etree.ElementTree import Element as _XmlElement
 
 logger = logging.getLogger("hn-tech-signal-mcp")
+
+
+def _now_iso() -> str:
+    """Timezone-aware UTC timestamp string."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -119,6 +125,12 @@ async def _get_text(url: str, params: Optional[dict] = None) -> str:
 
 
 def _handle_error(e: Exception, source: str = "") -> str:
+    logger.warning(
+        "Upstream error from %s: %s: %s",
+        source or "unknown",
+        type(e).__name__,
+        str(e)[:200],
+    )
     prefix = f"[{source}] " if source else ""
     if isinstance(e, httpx.HTTPStatusError):
         code = e.response.status_code
@@ -150,7 +162,8 @@ async def _fetch_hn_stories(story_type: str, limit: int) -> list[dict]:
     async def fetch_item(item_id: int) -> Optional[dict]:
         try:
             return await _get(f"{HN_BASE_URL}/item/{item_id}.json")
-        except Exception:
+        except Exception as e:
+            logger.debug("HN item %s fetch failed: %s", item_id, e)
             return None
 
     items = await asyncio.gather(*[fetch_item(i) for i in ids])
@@ -175,7 +188,7 @@ def _format_hn_story(s: dict) -> dict:
 # arXiv helpers
 # ---------------------------------------------------------------------------
 
-def _parse_arxiv_entry(entry: ElementTree.Element, ns: str) -> dict:
+def _parse_arxiv_entry(entry: _XmlElement, ns: str) -> dict:
     def t(tag: str) -> str:
         el = entry.find(f"{ns}{tag}")
         return el.text.strip() if el is not None and el.text else ""
@@ -213,7 +226,7 @@ async def _fetch_arxiv(search_query: str, limit: int) -> list[dict]:
             "sortOrder": "descending",
         },
     )
-    root = ElementTree.fromstring(xml_text)
+    root = _DefusedET.fromstring(xml_text)
     ns = "{http://www.w3.org/2005/Atom}"
     return [_parse_arxiv_entry(e, ns) for e in root.findall(f"{ns}entry")]
 
@@ -343,7 +356,7 @@ async def hn_top_stories(params: HnTopStoriesInput) -> str:
             stories = [s for s in stories if s.get("score", 0) >= params.min_score]
         stories = stories[: params.limit]
         result = json.dumps(
-            {"feed": params.feed, "fetched_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            {"feed": params.feed, "fetched_at": _now_iso(),
              "count": len(stories), "stories": [_format_hn_story(s) for s in stories]},
             indent=2, ensure_ascii=False,
         )
@@ -451,7 +464,7 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
         )
         by_category = {cat: papers for cat, papers in zip(params.categories, results_raw)}
         result = json.dumps(
-            {"fetched_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            {"fetched_at": _now_iso(),
              "categories": params.categories,
              "total_papers": sum(len(p) for p in by_category.values()),
              "by_category": by_category},
@@ -498,7 +511,7 @@ async def arxiv_search(params: ArxivSearchInput) -> str:
         papers = await _fetch_arxiv(search_query, params.limit)
         result = json.dumps(
             {"query": params.query, "category": params.category,
-             "fetched_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+             "fetched_at": _now_iso(),
              "count": len(papers), "papers": papers},
             indent=2, ensure_ascii=False,
         )
@@ -556,7 +569,7 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
                 break
         result = json.dumps(
             {"tag_filter": params.tag_filter,
-             "fetched_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+             "fetched_at": _now_iso(),
              "count": len(stories), "stories": stories},
             indent=2, ensure_ascii=False,
         )
@@ -617,7 +630,7 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
         ]
         result = json.dumps(
             {"topic": params.topic, "sort": params.sort,
-             "fetched_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+             "fetched_at": _now_iso(),
              "total_found": data.get("total_count", 0), "count": len(repos), "repos": repos},
             indent=2, ensure_ascii=False,
         )
@@ -717,7 +730,7 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
         )[: params.github_limit]
 
         digest = {
-            "generated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            "generated_at": _now_iso(),
             "focus": params.focus or "broad tech & AI",
             "sources": {
                 "hn": {"label": "HackerNews", "count": len(hn_stories), "stories": hn_stories},
@@ -757,7 +770,12 @@ def _resolve_http_bind() -> tuple[str, int]:
 
 
 def main() -> None:
+    logging.basicConfig(
+        level=os.environ.get("LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
     transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    logger.info("Starting hn-tech-signal-mcp transport=%s", transport)
     if transport == "streamable_http":
         host, port = _resolve_http_bind()
         mcp.settings.host = host

@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **medium** |
-| **Status** | open |
+| **Status** | in-remediation (Sprint 1) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `SDK-003` (Forward-Compatible Standard Library Usage) |
 | **Audit-Datum** | 2026-05-12 |
