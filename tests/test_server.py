@@ -158,6 +158,64 @@ def test_hn_search_input_empty_query():
         HnSearchInput(query="")
 
 
+# ---------------------------------------------------------------------------
+# SEC-001 regression: GITHUB_TOKEN must only be sent to api.github.com
+# ---------------------------------------------------------------------------
+
+def test_github_token_only_sent_to_github(monkeypatch):
+    """Bearer header must only attach to github.com URLs."""
+    monkeypatch.setenv("GITHUB_TOKEN", "ghp_test_secret")
+    from hn_tech_signal_mcp.server import _headers_for, GITHUB_BASE_URL
+
+    for foreign in (
+        "https://hacker-news.firebaseio.com/v0/topstories.json",
+        "https://hn.algolia.com/api/v1/search",
+        "https://export.arxiv.org/api/query",
+        "https://lobste.rs/hottest.json",
+    ):
+        assert "Authorization" not in _headers_for(foreign), foreign
+
+    gh = _headers_for(f"{GITHUB_BASE_URL}/search/repositories")
+    assert gh["Authorization"] == "Bearer ghp_test_secret"
+
+
+def test_no_auth_header_without_token(monkeypatch):
+    """Without GITHUB_TOKEN no Authorization header anywhere."""
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    from hn_tech_signal_mcp.server import _headers_for, GITHUB_BASE_URL
+    assert "Authorization" not in _headers_for(f"{GITHUB_BASE_URL}/search/repositories")
+    assert "Authorization" not in _headers_for("https://export.arxiv.org/api/query")
+
+
+# ---------------------------------------------------------------------------
+# SEC-002 regression: streamable_http refuses public bind without bearer
+# ---------------------------------------------------------------------------
+
+def test_http_default_binds_loopback(monkeypatch):
+    monkeypatch.delenv("MCP_HOST", raising=False)
+    monkeypatch.delenv("MCP_PORT", raising=False)
+    from hn_tech_signal_mcp.server import _resolve_http_bind
+    host, port = _resolve_http_bind()
+    assert host == "127.0.0.1"
+    assert port == 8000
+
+
+def test_http_refuses_public_bind_without_bearer(monkeypatch):
+    monkeypatch.setenv("MCP_HOST", "0.0.0.0")
+    monkeypatch.delenv("MCP_BEARER_TOKEN", raising=False)
+    from hn_tech_signal_mcp.server import _resolve_http_bind
+    with pytest.raises(RuntimeError, match="MCP_BEARER_TOKEN"):
+        _resolve_http_bind()
+
+
+def test_http_allows_public_bind_with_bearer(monkeypatch):
+    monkeypatch.setenv("MCP_HOST", "0.0.0.0")
+    monkeypatch.setenv("MCP_BEARER_TOKEN", "secret-xyz")
+    from hn_tech_signal_mcp.server import _resolve_http_bind
+    host, _ = _resolve_http_bind()
+    assert host == "0.0.0.0"
+
+
 def test_seven_tools_registered():
     """All 7 tools are registered on the server."""
     from hn_tech_signal_mcp.server import mcp
