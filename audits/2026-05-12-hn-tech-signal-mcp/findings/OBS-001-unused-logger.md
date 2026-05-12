@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **medium** |
-| **Status** | in-remediation (Sprint 1) |
+| **Status** | closed (re-audit 2026-05-12) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `OBS-001` (Structured Logging Baseline) / `OBS-003` (Error Visibility) |
 | **Audit-Datum** | 2026-05-12 |

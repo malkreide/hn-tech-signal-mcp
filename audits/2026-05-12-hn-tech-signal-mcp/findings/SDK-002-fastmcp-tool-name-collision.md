@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **low** |
-| **Status** | in-remediation (Sprint 2) |
+| **Status** | closed (re-audit 2026-05-12) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `SDK-005` (Naming Hygiene) |
 | **Audit-Datum** | 2026-05-12 |
