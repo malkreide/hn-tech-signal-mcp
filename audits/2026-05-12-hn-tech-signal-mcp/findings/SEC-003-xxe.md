@@ -3,7 +3,7 @@
 | Feld | Wert |
 |---|---|
 | **Severity** | **medium** |
-| **Status** | open |
+| **Status** | in-remediation (Sprint 1) |
 | **Server** | `hn-tech-signal-mcp` |
 | **Check-Reference** | `SEC-011` (Untrusted Input Parsing) |
 | **Audit-Datum** | 2026-05-12 |

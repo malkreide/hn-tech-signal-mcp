@@ -159,6 +159,47 @@ def test_hn_search_input_empty_query():
 
 
 # ---------------------------------------------------------------------------
+# SDK-001 regression: no usage of deprecated datetime.utcnow()
+# ---------------------------------------------------------------------------
+
+def test_no_datetime_utcnow_in_source():
+    """datetime.utcnow() is deprecated in Python 3.12+; ensure it's gone."""
+    from pathlib import Path
+    src = Path(__file__).parent.parent / "src" / "hn_tech_signal_mcp" / "server.py"
+    assert "datetime.utcnow" not in src.read_text(), "datetime.utcnow() reintroduced"
+
+
+def test_now_iso_is_timezone_aware():
+    from hn_tech_signal_mcp.server import _now_iso
+    s = _now_iso()
+    assert s.endswith(" UTC")
+    assert len(s) == len("YYYY-MM-DD HH:MM UTC")
+
+
+# ---------------------------------------------------------------------------
+# SEC-003 regression: XML parsing uses defusedxml
+# ---------------------------------------------------------------------------
+
+def test_xml_parser_is_defused():
+    """arXiv XML must be parsed with defusedxml, not stdlib xml.etree."""
+    from hn_tech_signal_mcp import server
+    assert server._DefusedET.__name__.startswith("defusedxml"), \
+        f"Expected defusedxml, got {server._DefusedET.__name__}"
+
+
+# ---------------------------------------------------------------------------
+# OBS-001 regression: errors are logged
+# ---------------------------------------------------------------------------
+
+def test_handle_error_logs_warning(caplog):
+    import httpx, logging
+    from hn_tech_signal_mcp.server import _handle_error
+    caplog.set_level(logging.WARNING, logger="hn-tech-signal-mcp")
+    _handle_error(httpx.TimeoutException("test timeout"), source="UnitTest")
+    assert any("UnitTest" in r.message and "TimeoutException" in r.message for r in caplog.records)
+
+
+# ---------------------------------------------------------------------------
 # SEC-001 regression: GITHUB_TOKEN must only be sent to api.github.com
 # ---------------------------------------------------------------------------
 
