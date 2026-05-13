@@ -29,7 +29,7 @@ def test_version():
     """Package version is defined."""
     import hn_tech_signal_mcp
 
-    assert hn_tech_signal_mcp.__version__ == "0.1.0"
+    assert hn_tech_signal_mcp.__version__ == "0.2.1"
 
 
 def test_constants():
