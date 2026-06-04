@@ -1,4 +1,6 @@
-# Security Policy
+# 🛡️ Security Policy
+
+[🇩🇪 Deutsche Version](SECURITY.de.md)
 
 ## Supported Versions
 
