@@ -40,7 +40,6 @@ dependencies = [
 hn-tech-signal-mcp = "hn_tech_signal_mcp.server:main"
 
 [project.urls]
-"mcp-name" = "io.github.malkreide/hn-tech-signal-mcp"
 Homepage = "https://github.com/malkreide/hn-tech-signal-mcp"
 Repository = "https://github.com/malkreide/hn-tech-signal-mcp"
 Issues = "https://github.com/malkreide/hn-tech-signal-mcp/issues"

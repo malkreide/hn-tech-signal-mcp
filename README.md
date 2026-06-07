@@ -337,3 +337,5 @@ Hayal Oezkan · [malkreide](https://github.com/malkreide)
 - **Protocol**: [Model Context Protocol](https://modelcontextprotocol.io/) — Anthropic / Linux Foundation
 - **Related**: [news-monitor-mcp](https://github.com/malkreide/news-monitor-mcp) — Swiss institutional media monitoring
 - **Portfolio**: [Swiss Public Data MCP Portfolio](https://github.com/malkreide)
+
+<!-- mcp-name: io.github.malkreide/hn-tech-signal-mcp -->
