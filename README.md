@@ -34,12 +34,15 @@
 
 ```
 FRONTIER    arXiv API      → Latest AI/ML papers (cs.AI, cs.LG, cs.CL, cs.CV)
-DISCOURSE   HackerNews     → Top/best stories + Algolia full-text search
+DISCOURSE   HackerNews     → Six feeds + Algolia search + comment threads
             Lobste.rs      → Curated, lower-noise tech signal
 PRACTICE    GitHub Search  → What engineers are actually building right now
+            HN Show HN     → What individuals are shipping this week
 ```
 
 Think of the four layers as a radar: arXiv shows what's coming over the horizon, HN and Lobste.rs show what practitioners are discussing, and GitHub shows what teams are actually shipping.
+
+Within the discourse layer there are two levels of depth. The feeds and the search tell you *what* is being discussed; `hn_discussion` tells you *what is actually being argued* — the counter-arguments and the "we tried this in production" replies that carry the real signal.
 
 ---
 
@@ -47,8 +50,9 @@ Think of the four layers as a radar: arXiv shows what's coming over the horizon,
 
 - 🔬 **Research frontier** – Latest arXiv papers by category (cs.AI, cs.LG, cs.CL, and more)
 - 🔍 **arXiv full-text search** – Find papers by keyword, title, or author
-- 🗣️ **HackerNews top/best/new** – With optional AI-keyword filter
+- 🗣️ **HackerNews feeds** – top, best, new, Ask HN, Show HN and YC job posts
 - 🔎 **HackerNews search** – Full history via Algolia, with date range filter
+- 💬 **HackerNews comment threads** – Read the actual discussion under a story, nested, with a bounded fetch budget
 - 🔧 **Lobste.rs hottest** – Curated developer signal, filterable by tag
 - 🛠️ **GitHub trending AI repos** – Search by topic, stars, sort by activity or popularity
 - 📋 **Tech signal digest** – One-call cross-source briefing in Markdown
@@ -56,13 +60,27 @@ Think of the four layers as a radar: arXiv shows what's coming over the horizon,
 
 | # | Tool | Source | Description |
 |---|---|---|---|
-| 1 | `hn_top_stories` | HackerNews | Top/best/new stories, with optional AI filter |
+| 1 | `hn_top_stories` | HackerNews | Six feeds: top/best/new/ask/show/job, with score filter |
 | 2 | `hn_search` | HN Algolia | Full-text search across all HN history |
-| 3 | `arxiv_latest` | arXiv | Latest papers by category (cs.AI etc.) |
-| 4 | `arxiv_search` | arXiv | Search papers by keyword/title/author |
-| 5 | `lobsters_hot` | Lobste.rs | Curated tech stories, filterable by tag |
-| 6 | `github_trending_ai` | GitHub | Trending AI repos by topic and stars |
-| 7 | `tech_signal_digest` | All sources | Aggregated Markdown briefing |
+| 3 | `hn_discussion` | HackerNews | Nested comment thread under a story |
+| 4 | `arxiv_latest` | arXiv | Latest papers by category (cs.AI etc.) |
+| 5 | `arxiv_search` | arXiv | Search papers by keyword/title/author |
+| 6 | `lobsters_hot` | Lobste.rs | Curated tech stories, filterable by tag |
+| 7 | `github_trending_ai` | GitHub | Trending AI repos by topic and stars |
+| 8 | `tech_signal_digest` | All sources | Aggregated Markdown briefing |
+
+### HackerNews feeds
+
+| Feed | Content | Upstream size |
+|---|---|---|
+| `top` | Front page as ranked right now | 500 items |
+| `best` | Highest-voted recent stories | 200 items |
+| `new` | Newest submissions, unfiltered | 500 items |
+| `ask` | Ask HN — what practitioners are stuck on | ~30 items |
+| `show` | Show HN — what people are shipping | 200 items |
+| `job` | YC portfolio job posts (`type: "job"`, no comments, score always 1) | ~30 items |
+
+`ask` and `job` are short feeds upstream, so a large `limit` may return fewer stories than requested.
 
 ---
 
@@ -174,10 +192,27 @@ python -m hn_tech_signal_mcp.server
 │  Claude / AI    │────▶│   HN Tech Signal MCP             │────▶│  HackerNews Firebase  │
 │  (MCP Host)     │◀────│   (MCP Server)                   │────▶│  HN Algolia Search    │
 └─────────────────┘    │                                   │────▶│  arXiv.org (Atom API) │
-                       │  7 Tools                          │────▶│  Lobste.rs JSON API   │
+                       │  8 Tools                          │────▶│  Lobste.rs JSON API   │
                        │  Stdio | Streamable HTTP          │────▶│  GitHub Search API    │
                        └─────────────────────────────────┘    └───────────────────────┘
 ```
+
+### Architecture decision
+
+This server uses **Architecture A (live API only, two paths per source)**. There is no bulk dump to fall back on.
+
+Rationale (verified live on 2026-07-28 against the [official HackerNews API](https://github.com/HackerNews/API)):
+
+- All six feed endpoints (`{top,best,new,ask,show,job}stories.json`) answer HTTP 200 with 29–500 IDs. No auth, no rate-limit headers, `Cache-Control: no-cache`.
+- HackerNews publishes no bulk export, so caching is entirely this server's responsibility. TTLs live in `CACHE_TTL`.
+- The Firebase API has no search. Historical and full-text queries go through the Algolia index instead — that is the second path, used by `hn_search`.
+- `item/<id>.json` is one request per item. Feeds and comment threads therefore fan out, which is why both are bounded (`HN_MAX_CONCURRENCY`, `max_comments`).
+
+Consequences:
+
+- Every upstream call retries with exponential backoff (2s / 4s / 8s) on network errors, 5xx and 429. Other 4xx fail fast.
+- One process-wide pooled `httpx.AsyncClient`, closed via the FastMCP lifespan.
+- Unknown item IDs return HTTP 200 with a `null` body rather than a 404 — `hn_discussion` translates that into an explicit "no item found" message.
 
 ---
 
@@ -188,10 +223,10 @@ hn-tech-signal-mcp/
 ├── src/
 │   └── hn_tech_signal_mcp/
 │       ├── __init__.py
-│       └── server.py          # All 7 tools
+│       └── server.py          # All 8 tools
 ├── tests/
 │   ├── __init__.py
-│   └── test_server.py         # 21 unit + 5 live tests
+│   └── test_server.py         # 64 unit + 12 live tests
 ├── pyproject.toml
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
@@ -281,6 +316,9 @@ PYTHONPATH=src pytest tests/ -m "live"
 - **GitHub rate limit**: 60 req/h without token. Set `GITHUB_TOKEN` for production use.
 - **arXiv**: Papers may take up to 24h to appear after submission. Weekends/holidays have delayed batches.
 - **HackerNews**: Top/best story lists update every few minutes. Very new stories may have low scores.
+- **HackerNews `ask` / `job` feeds**: Only ~30 items exist upstream, so a large `limit` returns fewer stories than requested. Job posts carry `type: "job"`, no comment count, and a score of 1.
+- **`hn_discussion` is always a sample, never the full thread**: one request per comment upstream means popular stories (900+ comments) cannot be fetched whole. The budget is split across nesting levels and spread round-robin across sibling threads, so you get a representative cross-section rather than one exhaustively-read sub-thread. Check the `truncated` flag.
+- **`hn_discussion` comment text is plain text, not HTML**: HN's markup is stripped for readability. Do not re-render the output as HTML — the conversion is not a sanitiser.
 - **Lobste.rs**: Smaller community than HN; tech-focused but may not cover all AI topics.
 - **tech_signal_digest**: Makes ~4 concurrent requests; if one source is slow it may delay the full response.
 

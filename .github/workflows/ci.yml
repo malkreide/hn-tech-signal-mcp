@@ -37,8 +37,8 @@ jobs:
         run: ruff format --check src tests
 
       - name: Run unit tests (no network) with coverage
-        # Threshold locks in current floor (~49%). Coverage is intentionally
-        # limited because the tool bodies depend on live HTTP and are only
-        # exercised by the 'live' marker, which is deselected in CI. Raise the
-        # threshold once HTTP fixtures (respx) are added.
-        run: PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=45
+        # Threshold locks in the current floor (~69%). The HackerNews paths are
+        # covered by respx fixtures; the remaining gap is the arXiv, Lobste.rs
+        # and GitHub tool bodies, which are still only exercised by the 'live'
+        # marker that CI deselects. Raise again as those gain fixtures.
+        run: PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65

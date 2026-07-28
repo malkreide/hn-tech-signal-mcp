@@ -34,12 +34,15 @@
 
 ```
 FRONTIER    arXiv API      → Neueste KI/ML-Paper (cs.AI, cs.LG, cs.CL, cs.CV)
-DISCOURSE   HackerNews     → Top/Best-Stories + Algolia-Volltextsuche
+DISCOURSE   HackerNews     → Sechs Feeds + Algolia-Volltextsuche + Kommentar-Threads
             Lobste.rs      → Kuratiertes, rauscharmes Tech-Signal
 PRACTICE    GitHub-Suche   → Was Entwicklerinnen und Entwickler gerade bauen
+            HN «Show HN»   → Was Einzelne diese Woche veröffentlichen
 ```
 
 Die vier Schichten funktionieren wie ein Radar: arXiv zeigt, was am Horizont erscheint; HN und Lobste.rs zeigen, was die Community diskutiert; GitHub zeigt, was tatsächlich gebaut wird.
+
+Innerhalb der Diskursschicht gibt es zwei Tiefenstufen: Feeds und Suche zeigen, *worüber* geredet wird — `hn_discussion` zeigt, *was tatsächlich argumentiert wird*: die Gegenargumente und die «wir haben das produktiv versucht»-Antworten, in denen das eigentliche Signal steckt.
 
 ---
 
@@ -47,13 +50,46 @@ Die vier Schichten funktionieren wie ein Radar: arXiv zeigt, was am Horizont ers
 
 | # | Tool | Quelle | Beschreibung |
 |---|---|---|---|
-| 1 | `hn_top_stories` | HackerNews | Top/Best/New-Stories, optional KI-Filter |
+| 1 | `hn_top_stories` | HackerNews | Sechs Feeds: top/best/new/ask/show/job, mit Score-Filter |
 | 2 | `hn_search` | HN Algolia | Volltextsuche in der gesamten HN-Historie |
-| 3 | `arxiv_latest` | arXiv | Neueste Paper nach Kategorie (cs.AI etc.) |
-| 4 | `arxiv_search` | arXiv | Suche nach Stichwort/Titel/Autorin |
-| 5 | `lobsters_hot` | Lobste.rs | Kuratierte Tech-Stories, nach Tag filterbar |
-| 6 | `github_trending_ai` | GitHub | Trending KI-Repos nach Topic und Sterne |
-| 7 | `tech_signal_digest` | Alle Quellen | Aggregiertes Markdown-Briefing |
+| 3 | `hn_discussion` | HackerNews | Verschachtelter Kommentar-Thread zu einer Story |
+| 4 | `arxiv_latest` | arXiv | Neueste Paper nach Kategorie (cs.AI etc.) |
+| 5 | `arxiv_search` | arXiv | Suche nach Stichwort/Titel/Autorin |
+| 6 | `lobsters_hot` | Lobste.rs | Kuratierte Tech-Stories, nach Tag filterbar |
+| 7 | `github_trending_ai` | GitHub | Trending KI-Repos nach Topic und Sterne |
+| 8 | `tech_signal_digest` | Alle Quellen | Aggregiertes Markdown-Briefing |
+
+### HackerNews-Feeds
+
+| Feed | Inhalt | Umfang upstream |
+|---|---|---|
+| `top` | Frontpage im aktuellen Ranking | 500 Einträge |
+| `best` | Am höchsten bewertete neuere Stories | 200 Einträge |
+| `new` | Neueste Einreichungen, ungefiltert | 500 Einträge |
+| `ask` | Ask HN — woran die Praxis hängenbleibt | ~30 Einträge |
+| `show` | Show HN — was Leute veröffentlichen | 200 Einträge |
+| `job` | Stelleninserate aus dem YC-Portfolio (`type: "job"`, keine Kommentare, Score immer 1) | ~30 Einträge |
+
+`ask` und `job` sind upstream kurze Feeds — ein hohes `limit` liefert entsprechend weniger Stories als angefragt.
+
+---
+
+## Architektur-Entscheid
+
+Dieser Server nutzt **Architektur A (nur Live-API, zwei Pfade pro Quelle)**. Ein Bulk-Dump existiert nicht.
+
+Begründung (live geprüft am 28.07.2026 gegen die [offizielle HackerNews-API](https://github.com/HackerNews/API)):
+
+- Alle sechs Feed-Endpoints (`{top,best,new,ask,show,job}stories.json`) antworten mit HTTP 200 und 29–500 IDs. Keine Auth, keine Rate-Limit-Header, `Cache-Control: no-cache`.
+- HackerNews bietet keinen Bulk-Export — Caching liegt vollständig bei diesem Server. Die TTLs stehen in `CACHE_TTL`.
+- Die Firebase-API kennt keine Suche. Historische und Volltext-Abfragen laufen über den Algolia-Index; das ist der zweite Pfad und wird von `hn_search` genutzt.
+- `item/<id>.json` ist ein Request pro Item. Feeds und Kommentar-Threads fächern deshalb auf — beides ist begrenzt (`HN_MAX_CONCURRENCY`, `max_comments`).
+
+Konsequenzen:
+
+- Jeder Upstream-Call wiederholt bei Netzwerkfehlern, 5xx und 429 mit exponentiellem Backoff (2s / 4s / 8s). Andere 4xx scheitern sofort.
+- Ein prozessweiter, gepoolter `httpx.AsyncClient`, geschlossen über den FastMCP-Lifespan.
+- Unbekannte Item-IDs liefern HTTP 200 mit `null`-Body statt 404 — `hn_discussion` übersetzt das in eine explizite «kein Item gefunden»-Meldung.
 
 ---
 
@@ -153,6 +189,9 @@ Sofort in Claude Desktop ausprobieren:
 - **GitHub Rate-Limit**: 60 Anfragen/h ohne Token. `GITHUB_TOKEN` für den Produktiveinsatz setzen.
 - **arXiv**: Neue Paper erscheinen mit bis zu 24 Stunden Verzögerung. An Wochenenden und Feiertagen verzögerte Batches.
 - **HackerNews**: Top/Best-Listen aktualisieren sich alle paar Minuten. Sehr neue Stories haben noch geringe Scores.
+- **HackerNews-Feeds `ask` / `job`**: Upstream existieren nur ~30 Einträge — ein hohes `limit` liefert entsprechend weniger. Job-Posts haben `type: "job"`, keine Kommentarzahl und Score 1.
+- **`hn_discussion` liefert immer eine Stichprobe, nie den ganzen Thread**: Ein Request pro Kommentar bedeutet, dass grosse Diskussionen (900+ Kommentare) nicht vollständig geholt werden können. Das Budget wird über die Verschachtelungsebenen aufgeteilt und innerhalb einer Ebene reihum auf die Geschwister-Threads verteilt — es entsteht ein repräsentativer Querschnitt statt eines einzigen erschöpfend gelesenen Unter-Threads. Das Feld `truncated` zeigt an, ob gekürzt wurde.
+- **`hn_discussion` gibt Klartext zurück, kein HTML**: Die HN-Auszeichnung wird für die Lesbarkeit entfernt. Die Ausgabe nicht wieder als HTML rendern — die Umwandlung ist kein Sanitizer.
 - **Lobste.rs**: Kleinere Community als HN; tech-fokussiert, aber nicht alle KI-Themen abgedeckt.
 
 ---

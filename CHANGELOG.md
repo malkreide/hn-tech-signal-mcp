@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-28
+
+Expands the HackerNews layer to the parts of the [official Firebase API](https://github.com/HackerNews/API) the server was not yet using, and closes two resilience gaps in the shared HTTP path. Verified against a live probe of the API on 2026-07-28.
+
+### Added
+- **`hn_top_stories` now serves all six HN feeds.** `ask` (Ask HN), `show` (Show HN) and `job` (YC job posts) join the existing `top` / `best` / `new`. `show` is the individual-level counterpart to the GitHub practice layer; `ask` surfaces what practitioners are stuck on.
+- **New tool `hn_discussion`** — reads the nested comment thread under a story. This is the one thing the Algolia index cannot provide: it can search comment text but returns no thread structure, so replies cannot be attributed to what they answer. Comments come back as plain text with HN's HTML markup stripped.
+- Live tests for the three new feeds and for `hn_discussion`, including the null-item path.
+
+### Changed
+- **Retry with exponential backoff for every upstream call.** `_request_with_retry` makes up to `RETRY_ATTEMPTS` (4) attempts, waiting 2s / 4s / 8s. Network errors, 5xx and 429 are retried; other 4xx fail immediately. Previously a single transient blip on any of the four sources surfaced to the user as an error.
+- **One pooled `httpx.AsyncClient` for the process**, created lazily and closed through a new FastMCP lifespan. Previously every request opened and discarded its own client, so a feed fan-out paid a full TCP + TLS handshake per HackerNews item.
+- **The HN item fan-out is bounded** by `HN_MAX_CONCURRENCY` (12) and sized against the connection pool. It was previously unbounded at up to 120 simultaneous requests.
+- `_format_hn_story` reports the item `type` and tolerates absent or null `url` / `score` / `descendants`.
+- CI coverage floor raised from 45 % to 65 % (actual: 69 %) now that the HackerNews paths have respx fixtures.
+
+### Fixed
+- **The `job` feed would have returned nothing.** `_fetch_hn_stories` filtered on `type == "story"`, but `jobstories.json` yields items of `type: "job"` — they were dropped silently. Both types are now accepted.
+- `version` in `pyproject.toml` (`0.2.4`) disagreed with `__init__.py` (`0.2.1`). Since `[tool.hatch.version]` reads the latter, builds carried the wrong number. Both are now `0.3.0`, and `test_version_matches_pyproject` fails on any future drift.
+- The `User-Agent` header was pinned at `hn-tech-signal-mcp/0.1.0` regardless of the actual release.
+- **`lobsters_hot` was broken against the current Lobste.rs API** (found while verifying the release, unrelated to the HackerNews work). Lobste.rs changed `submitter_user` from an object to a bare username string, so `.get("username")` raised `AttributeError` and every call returned an error string. `_lobsters_submitter` now accepts both shapes.
+
+### Known findings (live probe, 2026-07-28)
+- **The HN API answers unknown item IDs with HTTP 200 and a body of `null`, not a 404.** Any code path that fetches an item by ID has to test for the null body — an HTTP-level error check will report success on a nonexistent item. `hn_discussion` turns this into an explicit message.
+- `HEAD` on the Firebase API returns **405 Method Not Allowed**; it only serves GET. Not usable as a health check.
+- No rate-limit headers, and `Cache-Control: no-cache` on every response — caching is entirely the client's responsibility.
+- Feed sizes differ by an order of magnitude: `top`/`new` hold 500 IDs, `best`/`show` 200, `ask` and `job` roughly 30. A uniform `limit` therefore behaves differently per feed.
+- Job items carry no `descendants` key, Ask HN items carry no `url` key. Absent, not null — `.get(key, default)` is not enough on its own where the key can also be present and null.
+
 ## [0.2.1] — 2026-05-12
 
 First successful PyPI publish after the 2026-05-12 audit. Contents are the same as the `v0.2.0` GitHub release tag; the `v0.2.0` PyPI upload failed because `version` in `pyproject.toml` and `__init__.py` was not bumped, so the build produced `0.1.0` artefacts that PyPI rejected with `400 File already exists`. This release re-publishes the audit-closure baseline under the correct version.
