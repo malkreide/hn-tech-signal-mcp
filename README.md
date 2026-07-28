@@ -316,6 +316,19 @@ See [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) ([Deutsch](CONTRIBUTING.de.md)).
+
+---
+
+## Security
+
+See [SECURITY.md](SECURITY.md) ([Deutsch](SECURITY.de.md)) for the security
+posture and how to report a vulnerability.
+
+---
+
 ## License
 
 MIT License — see [LICENSE](LICENSE)
