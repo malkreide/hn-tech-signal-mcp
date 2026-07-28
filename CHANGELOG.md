@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+
+- **Capped `mcp` at `<2`.** `mcp` 2.0.0, published 2026-07-28, removed
+  `mcp.server.fastmcp` — the module this server imports. With the previous
+  unbounded `>=1.28.1` every fresh resolve picked 2.0.0 and failed at import
+  with `ModuleNotFoundError`, in CI and for anyone running `pip install` alike.
+  Verified in both directions: 2.0.0 fails, `<2` resolves to 1.29.0 and imports
+  cleanly. Migrating to the 2.x API (`mcp.server.mcpserver`) stays a separate,
+  deliberate piece of work.
 - **The MCP Registry publish for `v0.3.0` failed with HTTP 422.** `server.json`'s `description` was 109 characters; the registry caps it at 100. Shortened to 85. PyPI was unaffected — `0.3.0` published successfully, only the registry step of the release workflow failed.
 - `test_server_json_description_within_registry_limit` now fails in CI on a description over 100 characters, and `test_server_json_points_at_this_package` checks the registry entry still references this package. The 422 otherwise surfaces at the very last step of a release, after PyPI has already been published and can no longer be taken back.
 
