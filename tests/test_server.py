@@ -79,17 +79,43 @@ def test_version():
     assert hn_tech_signal_mcp.__version__ == "0.3.0"
 
 
-def test_version_matches_pyproject():
-    """pyproject and __init__ must agree — a mismatch breaks the PyPI publish."""
-    import re
+def _pyproject() -> dict:
+    import tomllib
+    from pathlib import Path
+
+    return tomllib.loads((Path(__file__).parent.parent / "pyproject.toml").read_text())
+
+
+def test_version_has_exactly_one_source():
+    """The build version must come from __init__.py, and only from there.
+
+    A static `version` in [project] silently wins over [tool.hatch.version],
+    which is how pyproject and __init__.py drifted apart before 0.3.0 without
+    anything failing. Guarding the configuration catches that at the source;
+    comparing two values only catches it once they already disagree.
+    """
+    project = _pyproject()["project"]
+    assert "version" not in project, (
+        "A static [project] version overrides [tool.hatch.version] and "
+        "reintroduces the drift. Bump __init__.py instead."
+    )
+    assert "version" in project.get("dynamic", []), (
+        "Without dynamic = ['version'], hatchling has no version source at all."
+    )
+
+
+def test_hatch_version_path_defines_dunder_version():
+    """[tool.hatch.version].path must point at the file that sets __version__."""
     from pathlib import Path
 
     import hn_tech_signal_mcp
 
-    pyproject = (Path(__file__).parent.parent / "pyproject.toml").read_text()
-    declared = re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE)
-    assert declared is not None
-    assert declared.group(1) == hn_tech_signal_mcp.__version__
+    root = Path(__file__).parent.parent
+    path = _pyproject()["tool"]["hatch"]["version"]["path"]
+    source = (root / path).read_text()
+    assert f'__version__ = "{hn_tech_signal_mcp.__version__}"' in source, (
+        f"{path} does not define the imported __version__"
+    )
 
 
 def test_constants():

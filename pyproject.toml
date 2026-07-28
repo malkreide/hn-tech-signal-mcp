@@ -4,7 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hn-tech-signal-mcp"
-version = "0.3.0"
+# Single source of truth: src/hn_tech_signal_mcp/__init__.py (see [tool.hatch.version]).
+dynamic = ["version"]
 description = "MCP server for tech & AI intelligence – aggregates HackerNews, arXiv, Lobste.rs and GitHub. No API key required."
 readme = "README.md"
 license = { text = "MIT" }

@@ -22,6 +22,7 @@ Expands the HackerNews layer to the parts of the [official Firebase API](https:/
 - **The HN item fan-out is bounded** by `HN_MAX_CONCURRENCY` (12) and sized against the connection pool. It was previously unbounded at up to 120 simultaneous requests.
 - `_format_hn_story` reports the item `type` and tolerates absent or null `url` / `score` / `descendants`.
 - CI coverage floor raised from 45 % to 65 % (actual: 72 %) now that the HackerNews paths have respx fixtures.
+- **`src/hn_tech_signal_mcp/__init__.py` is now the single source of the version.** `[project]` declares `dynamic = ["version"]` and no longer carries a static `version`, so the `[tool.hatch.version]` path it has always named is finally the one hatchling reads. Bumping a release now means editing one file. `test_version_has_exactly_one_source` fails if a static `version` is ever put back — guarding the configuration rather than comparing two values, because two values only disagree after the damage is done.
 
 ### Fixed
 - **The `job` feed would have returned nothing.** `_fetch_hn_stories` filtered on `type == "story"`, but `jobstories.json` yields items of `type: "job"` — they were dropped silently. Both types are now accepted.
@@ -37,7 +38,7 @@ Expands the HackerNews layer to the parts of the [official Firebase API](https:/
 - Job items carry no `descendants` key, Ask HN items carry no `url` key. Absent, not null — `.get(key, default)` is not enough on its own where the key can also be present and null.
 
 ### Known findings (packaging)
-- **`[tool.hatch.version]` in this project is inert.** It names `src/hn_tech_signal_mcp/__init__.py` as the version source, but `[project]` declares a static `version` and no `dynamic = ["version"]` — so hatchling reads the static field and never consults the file. Verified by building with `pyproject.toml` at `9.9.9` and `__init__.py` at `1.1.1`: the wheel came out `hn_tech_signal_mcp-9.9.9`. This is why PyPI holds `0.2.4` even though `__init__.py` said `0.2.1` at the time. Keep both fields in sync (now enforced by `test_version_matches_pyproject`), or add `dynamic = ["version"]` and drop the static field to make the declared single source of truth actually authoritative.
+- **`[tool.hatch.version]` was inert, and is now authoritative.** It named `src/hn_tech_signal_mcp/__init__.py` as the version source, but `[project]` also declared a static `version` and no `dynamic = ["version"]` — so hatchling read the static field and never consulted the file. Verified by building with `pyproject.toml` at `9.9.9` and `__init__.py` at `1.1.1`: the wheel came out `hn_tech_signal_mcp-9.9.9`. This is why PyPI holds `0.2.4` even though `__init__.py` said `0.2.1` at the time — two version fields, one of them decorative, and nothing failing to point that out. Resolved in this release (see *Changed*).
 
 ## [0.2.1] — 2026-05-12
 
