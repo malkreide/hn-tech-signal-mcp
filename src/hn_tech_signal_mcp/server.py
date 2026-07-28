@@ -1,4 +1,4 @@
-"""HN Tech Signal MCP Server – 7 Tools for Tech & AI Intelligence.
+"""HN Tech Signal MCP Server – 8 Tools for Tech & AI Intelligence.
 
 Aggregates signals from four complementary sources:
   - HackerNews  (community discourse, broad tech)
@@ -11,18 +11,23 @@ Optional: GITHUB_TOKEN for higher GitHub rate limits (5,000 req/h vs 60).
 
 Architecture:
   FRONTIER  →  arXiv API          (cs.AI / cs.LG / cs.CL / cs.CV / stat.ML)
-  DISCOURSE →  HackerNews API     (top / best / new stories)
+  DISCOURSE →  HackerNews API     (top / best / new / ask / show / job feeds,
+                                   plus comment threads via hn_discussion)
                Lobste.rs JSON API (curated tech community)
   PRACTICE  →  GitHub Search API  (trending repos by topic)
   AGGREGATE →  tech_signal_digest (all sources, one call)
 """
 
 import asyncio
+import html
 import json
 import logging
 import os
+import re
 import time
 from collections import OrderedDict
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Optional
 from xml.etree.ElementTree import Element as _XmlElement
@@ -53,12 +58,33 @@ GITHUB_BASE_URL = "https://api.github.com"
 DEFAULT_TIMEOUT = 20.0
 ARXIV_AI_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.NE", "stat.ML"]
 
+# HN story feeds. The Firebase API exposes one endpoint per feed following the
+# pattern "<feed>stories.json". 'job' is included but yields items of type
+# "job", not "story" — see _fetch_hn_stories.
+HN_FEEDS = ("top", "best", "new", "ask", "show", "job")
+
+# Retry policy for all upstream HTTP calls: 3 retries after the initial attempt,
+# waiting 2s / 4s / 8s. Retried on network errors, 5xx and 429; other 4xx fail
+# fast because they will not resolve themselves.
+RETRY_ATTEMPTS = 4
+RETRY_BASE_DELAY = 2.0
+
+# The HN item endpoint is one request per item, so a single tool call fans out
+# to dozens of requests. Bound the concurrency so we neither hammer the upstream
+# nor exhaust the connection pool.
+HN_MAX_CONCURRENCY = 12
+
+# Connection pool sizing for the shared client. Slightly above the HN fan-out
+# limit to leave headroom for the parallel sources in tech_signal_digest.
+_POOL_LIMITS = httpx.Limits(max_connections=20, max_keepalive_connections=10)
+
 # In-memory TTL cache, LRU-bounded to prevent unbounded growth in long-running HTTP mode.
 _CACHE_MAX_ENTRIES = 512
 _cache: "OrderedDict[str, tuple[float, Any]]" = OrderedDict()
 CACHE_TTL: dict[str, int] = {
     "hn_top": 600,
     "hn_search": 300,
+    "hn_discussion": 300,
     "arxiv": 1800,
     "lobsters": 900,
     "github": 1800,
@@ -89,13 +115,25 @@ def _cache_set(key: str, data: Any) -> None:
 # Server
 # ---------------------------------------------------------------------------
 
+
+@asynccontextmanager
+async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
+    """Close the shared HTTP client on shutdown so sockets are released cleanly."""
+    try:
+        yield
+    finally:
+        await _aclose_shared_client()
+
+
 server = FastMCP(
     "hn_tech_signal_mcp",
     instructions=(
         "Tech & AI intelligence server aggregating signals from HackerNews, arXiv, "
         "Lobste.rs and GitHub. No API keys required. "
-        "Use tech_signal_digest for a full briefing in a single call."
+        "Use tech_signal_digest for a full briefing in a single call, "
+        "and hn_discussion to read the actual argument thread under a story."
     ),
+    lifespan=_lifespan,
 )
 
 
@@ -105,7 +143,7 @@ server = FastMCP(
 
 _BASE_HEADERS = {
     "Accept": "application/json",
-    "User-Agent": "hn-tech-signal-mcp/0.1.0",
+    "User-Agent": "hn-tech-signal-mcp/0.3.0",
 }
 
 
@@ -118,18 +156,76 @@ def _headers_for(url: str) -> dict[str, str]:
     return headers
 
 
+_client: Optional[httpx.AsyncClient] = None
+
+
+def _get_client() -> httpx.AsyncClient:
+    """Lazily create the process-wide AsyncClient.
+
+    One client for the whole server, so connections are pooled and reused. The
+    previous implementation opened a fresh client per request, which meant a
+    full TCP + TLS handshake for every single HN item in a fan-out.
+    """
+    global _client
+    if _client is None or _client.is_closed:
+        _client = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, limits=_POOL_LIMITS)
+    return _client
+
+
+async def _aclose_shared_client() -> None:
+    """Close the shared client. Idempotent; safe to call when never created."""
+    global _client
+    if _client is not None and not _client.is_closed:
+        await _client.aclose()
+    _client = None
+
+
+def _is_retryable(exc: Exception) -> bool:
+    """Network errors and transient server responses are worth another attempt."""
+    if isinstance(exc, httpx.RequestError):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        code = exc.response.status_code
+        return code == 429 or 500 <= code < 600
+    return False
+
+
+async def _request_with_retry(url: str, params: Optional[dict] = None) -> httpx.Response:
+    """GET with exponential backoff (2s / 4s / 8s) on transient failures.
+
+    4xx other than 429 are raised immediately — a malformed query or a missing
+    item will not fix itself by waiting.
+    """
+    client = _get_client()
+    last_error: Exception | None = None
+    for attempt in range(RETRY_ATTEMPTS):
+        if attempt > 0:
+            await asyncio.sleep(RETRY_BASE_DELAY * (2 ** (attempt - 1)))
+        try:
+            r = await client.get(url, params=params, headers=_headers_for(url))
+            r.raise_for_status()
+            return r
+        except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+            if not _is_retryable(exc):
+                raise
+            last_error = exc
+            logger.debug(
+                "Retryable upstream failure (attempt %d/%d) for %s: %s",
+                attempt + 1,
+                RETRY_ATTEMPTS,
+                url,
+                exc,
+            )
+    assert last_error is not None
+    raise last_error
+
+
 async def _get(url: str, params: Optional[dict] = None) -> Any:
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        r = await client.get(url, params=params, headers=_headers_for(url))
-        r.raise_for_status()
-        return r.json()
+    return (await _request_with_retry(url, params)).json()
 
 
 async def _get_text(url: str, params: Optional[dict] = None) -> str:
-    async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as client:
-        r = await client.get(url, params=params, headers=_headers_for(url))
-        r.raise_for_status()
-        return r.text
+    return (await _request_with_retry(url, params)).text
 
 
 def _handle_error(e: Exception, source: str = "") -> str:
@@ -168,33 +264,183 @@ def _ts_to_iso(ts: Optional[int]) -> str:
 # ---------------------------------------------------------------------------
 
 
+# Item types accepted as a "story" for feed purposes. The jobstories feed
+# returns items of type "job", which the previous story-only filter silently
+# dropped — the feed would have come back empty.
+_FEED_ITEM_TYPES = {"story", "job"}
+
+
+async def _fetch_hn_item(item_id: int) -> Optional[dict]:
+    """Fetch a single HN item.
+
+    Returns None both for fetch failures and for the API's null response.
+    Note: the Firebase API answers unknown IDs with HTTP 200 and a body of
+    `null` rather than a 404, so a missing item is not an error here.
+    """
+    try:
+        item = await _get(f"{HN_BASE_URL}/item/{item_id}.json")
+    except Exception as e:
+        logger.debug("HN item %s fetch failed: %s", item_id, e)
+        return None
+    return item if isinstance(item, dict) else None
+
+
 async def _fetch_hn_stories(story_type: str, limit: int) -> list[dict]:
     ids: list[int] = await _get(f"{HN_BASE_URL}/{story_type}stories.json")
     ids = ids[: min(limit * 3, 120)]
 
+    sem = asyncio.Semaphore(HN_MAX_CONCURRENCY)
+
     async def fetch_item(item_id: int) -> Optional[dict]:
-        try:
-            return await _get(f"{HN_BASE_URL}/item/{item_id}.json")
-        except Exception as e:
-            logger.debug("HN item %s fetch failed: %s", item_id, e)
-            return None
+        async with sem:
+            return await _fetch_hn_item(item_id)
 
     items = await asyncio.gather(*[fetch_item(i) for i in ids])
-    stories = [i for i in items if i and i.get("type") == "story" and i.get("title")]
+    stories = [i for i in items if i and i.get("type") in _FEED_ITEM_TYPES and i.get("title")]
     return stories[:limit]
 
 
 def _format_hn_story(s: dict) -> dict:
+    item_id = s.get("id")
+    hn_link = f"https://news.ycombinator.com/item?id={item_id}"
     return {
-        "id": s.get("id"),
+        "id": item_id,
+        "type": s.get("type", "story"),
         "title": s.get("title", ""),
-        "url": s.get("url", f"https://news.ycombinator.com/item?id={s.get('id')}"),
-        "score": s.get("score", 0),
-        "comments": s.get("descendants", 0),
+        # Ask HN posts carry no 'url' — the discussion itself is the content.
+        "url": s.get("url") or hn_link,
+        "score": s.get("score") or 0,
+        # Job posts carry no 'descendants'.
+        "comments": s.get("descendants") or 0,
         "by": s.get("by", ""),
         "posted": _ts_to_iso(s.get("time")),
-        "hn_link": f"https://news.ycombinator.com/item?id={s.get('id')}",
+        "hn_link": hn_link,
     }
+
+
+# ---------------------------------------------------------------------------
+# HackerNews comment threads
+# ---------------------------------------------------------------------------
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _clean_hn_text(raw: Optional[str], max_chars: int) -> str:
+    """Turn HN's HTML comment markup into plain text for an LLM to read.
+
+    HN serves comment bodies as a small HTML subset (`<p>`, `<i>`, `<pre>`,
+    `<a href>`) with entity-escaped content. This is a readability conversion,
+    not a sanitiser — the output is meant to be read, never re-rendered as HTML.
+    """
+    if not raw:
+        return ""
+    text = raw.replace("<p>", "\n\n").replace("</p>", "")
+    text = _TAG_RE.sub("", text)
+    text = html.unescape(text).strip()
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "…"
+    return text
+
+
+def _format_hn_comment(c: dict, text_chars: int) -> dict:
+    return {
+        "id": c.get("id"),
+        "by": c.get("by", ""),
+        "posted": _ts_to_iso(c.get("time")),
+        "text": _clean_hn_text(c.get("text"), text_chars),
+        "reply_count": len(c.get("kids") or []),
+        "replies": [],
+    }
+
+
+def _is_visible_comment(c: Optional[dict]) -> bool:
+    """Deleted and dead (flagged/killed) comments carry no usable signal."""
+    if not c or c.get("type") != "comment":
+        return False
+    return not (c.get("deleted") or c.get("dead"))
+
+
+async def _fetch_comment_tree(
+    root_kids: list[int], max_depth: int, max_comments: int, text_chars: int
+) -> tuple[list[dict], int, bool]:
+    """Breadth-first walk of a comment tree under a global node budget.
+
+    Breadth-first on purpose: HN orders `kids` by rank, so the first IDs at
+    each level are the ones a reader actually wants. A depth-first walk would
+    sink the whole budget into the first thread.
+
+    The budget is split across levels rather than consumed greedily. On a story
+    with 285 top-level comments, a greedy walk spends every slot on level 1 and
+    returns no replies at all — which defeats the point of reading a thread.
+    Each level may therefore claim only `remaining // levels_left` nodes, with
+    the last level taking whatever is left. Levels that are narrower than their
+    share simply pass the remainder down.
+
+    Returns (comments, fetched_count, truncated).
+    """
+    sem = asyncio.Semaphore(HN_MAX_CONCURRENCY)
+
+    async def fetch(item_id: int) -> Optional[dict]:
+        async with sem:
+            return await _fetch_hn_item(item_id)
+
+    roots: list[dict] = []
+    # Each level: the parent nodes to attach to, and the IDs to fetch for them.
+    level: list[tuple[Optional[dict], list[int]]] = [(None, list(root_kids))]
+    fetched = 0
+    truncated = False
+
+    for depth in range(max_depth):
+        remaining = max_comments - fetched
+        if remaining <= 0:
+            truncated = truncated or bool(level)
+            break
+        levels_left = max_depth - depth
+        level_budget = remaining if levels_left == 1 else max(1, remaining // levels_left)
+
+        # Round-robin across the parents of this level: one hot sub-thread must
+        # not swallow the level's budget while its siblings get nothing.
+        pending: list[tuple[Optional[dict], int]] = []
+        slot = 0
+        exhausted = False
+        while len(pending) < level_budget and not exhausted:
+            exhausted = True
+            for parent, kid_ids in level:
+                if slot >= len(kid_ids):
+                    continue
+                exhausted = False
+                if len(pending) >= level_budget:
+                    break
+                pending.append((parent, kid_ids[slot]))
+            slot += 1
+        if len(pending) < sum(len(kid_ids) for _, kid_ids in level):
+            truncated = True
+        if not pending:
+            break
+
+        items = await asyncio.gather(*[fetch(kid_id) for _, kid_id in pending])
+        next_level: list[tuple[Optional[dict], list[int]]] = []
+        for (parent, _kid_id), item in zip(pending, items):
+            if not _is_visible_comment(item):
+                continue
+            assert item is not None
+            node = _format_hn_comment(item, text_chars)
+            fetched += 1
+            if parent is None:
+                roots.append(node)
+            else:
+                parent["replies"].append(node)
+            kids = item.get("kids") or []
+            if kids:
+                next_level.append((node, list(kids)))
+        level = next_level
+        if not level:
+            break
+    else:
+        # Depth budget exhausted while replies were still unexplored.
+        truncated = truncated or bool(level)
+
+    return roots, fetched, truncated
 
 
 # ---------------------------------------------------------------------------
@@ -246,6 +492,24 @@ async def _fetch_arxiv(search_query: str, limit: int) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Lobste.rs helpers
+# ---------------------------------------------------------------------------
+
+
+def _lobsters_submitter(item: dict) -> str:
+    """Read the submitter name from either shape of `submitter_user`.
+
+    Lobste.rs used to nest the submitter as an object (`{"username": ...}`)
+    and now returns a bare username string. Accept both so a future flip back
+    does not break the tool again.
+    """
+    user = item.get("submitter_user")
+    if isinstance(user, dict):
+        return user.get("username", "")
+    return user or ""
+
+
+# ---------------------------------------------------------------------------
 # Input models
 # ---------------------------------------------------------------------------
 
@@ -254,11 +518,42 @@ class HnTopStoriesInput(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
     feed: str = Field(
         default="top",
-        description="Feed type: 'top' (frontpage), 'best' (highest voted), 'new' (latest)",
-        pattern="^(top|best|new)$",
+        description=(
+            "Feed type: 'top' (frontpage), 'best' (highest voted), 'new' (latest), "
+            "'ask' (Ask HN questions), 'show' (Show HN projects), 'job' (YC job posts). "
+            "Note: 'ask' and 'job' are short feeds (~30 items upstream)."
+        ),
+        pattern="^(top|best|new|ask|show|job)$",
     )
     limit: int = Field(default=10, description="Number of stories to return (1–30)", ge=1, le=30)
     min_score: int = Field(default=0, description="Minimum score filter (0 = no filter)", ge=0)
+
+
+class HnDiscussionInput(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
+    story_id: int = Field(
+        ...,
+        description="HackerNews item ID, e.g. from hn_top_stories or hn_search results",
+        gt=0,
+    )
+    max_depth: int = Field(
+        default=2,
+        description="Reply nesting levels to walk (1–4). 1 = top-level comments only.",
+        ge=1,
+        le=4,
+    )
+    max_comments: int = Field(
+        default=25,
+        description="Total comments to fetch across all levels (1–100)",
+        ge=1,
+        le=100,
+    )
+    text_chars: int = Field(
+        default=600,
+        description="Truncate each comment body to N characters (100–2000)",
+        ge=100,
+        le=2000,
+    )
 
 
 class HnSearchInput(BaseModel):
@@ -382,16 +677,24 @@ class TechSignalDigestInput(BaseModel):
     },
 )
 async def hn_top_stories(params: HnTopStoriesInput) -> str:
-    """Fetch top, best or new stories from HackerNews.
+    """Fetch stories from any of the six HackerNews front-page feeds.
+
+    Feeds: 'top' (frontpage), 'best' (highest voted), 'new' (latest),
+    'ask' (Ask HN — questions to the community), 'show' (Show HN — projects
+    people are shipping), 'job' (YC company job posts).
+
+    'show' is the strongest signal for what practitioners are actually
+    building; 'ask' for what they are stuck on. Upstream, 'ask' and 'job'
+    hold only ~30 items, so a large limit may return fewer results.
 
     Args:
         params (HnTopStoriesInput):
-            - feed (str): 'top', 'best', or 'new'
+            - feed (str): 'top', 'best', 'new', 'ask', 'show', or 'job'
             - limit (int): Stories to return (1–30)
-            - min_score (int): Minimum score filter
+            - min_score (int): Minimum score filter (job posts score 1)
 
     Returns:
-        str: JSON with feed, count, stories[]. Each story: id, title, url,
+        str: JSON with feed, count, stories[]. Each story: id, type, title, url,
              score, comments, by, posted, hn_link.
     """
     cache_key = f"hn_top|{params.feed}|{params.limit}|{params.min_score}"
@@ -495,7 +798,101 @@ async def hn_search(params: HnSearchInput) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Tool 3: arxiv_latest
+# Tool 3: hn_discussion
+# ---------------------------------------------------------------------------
+
+
+@server.tool(
+    name="hn_discussion",
+    annotations={
+        "title": "HackerNews Comment Thread",
+        "readOnlyHint": True,
+        "destructiveHint": False,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def hn_discussion(params: HnDiscussionInput) -> str:
+    """Read the comment thread under a HackerNews story.
+
+    Where hn_top_stories and hn_search tell you *what* is being discussed,
+    this tells you *what is actually being argued* — the counter-arguments,
+    the practitioner caveats, the "we tried this in production" replies that
+    carry the real signal. Algolia can search comment text but does not
+    return thread structure, so this is the only way to see who replied
+    to whom.
+
+    Get a story_id from hn_top_stories or hn_search first.
+
+    Comments are walked breadth-first, so the highest-ranked top-level
+    comments come back first. Deleted and flagged comments are skipped.
+    Popular threads run to several hundred comments and each one costs a
+    request upstream, so both depth and total count are capped — check the
+    'truncated' flag to see whether the thread was cut short.
+
+    Args:
+        params (HnDiscussionInput):
+            - story_id (int): HackerNews item ID
+            - max_depth (int): Reply nesting levels (1–4, default 2)
+            - max_comments (int): Total comment budget (1–100, default 25)
+            - text_chars (int): Per-comment text truncation (100–2000)
+
+    Returns:
+        str: JSON with story{}, total_comments (as reported by HN),
+             fetched_comments, truncated, comments[]. Each comment: id, by,
+             posted, text, reply_count, replies[] (same shape, nested).
+    """
+    cache_key = (
+        f"hn_discussion|{params.story_id}|{params.max_depth}"
+        f"|{params.max_comments}|{params.text_chars}"
+    )
+    if cached := _cache_get(cache_key, "hn_discussion"):
+        return cached
+    try:
+        item = await _fetch_hn_item(params.story_id)
+        if item is None:
+            # The API answers unknown IDs with HTTP 200 and a null body, so
+            # this is the only place a "not found" can surface.
+            return (
+                f"[HackerNews] No item found with ID {params.story_id}. "
+                "IDs come from hn_top_stories or hn_search results."
+            )
+        if item.get("type") == "comment":
+            parent = item.get("parent")
+            hint = f" Its parent item is {parent}." if parent else ""
+            return (
+                f"[HackerNews] Item {params.story_id} is a comment, not a story."
+                f"{hint} Pass a story ID to read its thread."
+            )
+
+        roots, fetched, truncated = await _fetch_comment_tree(
+            item.get("kids") or [],
+            params.max_depth,
+            params.max_comments,
+            params.text_chars,
+        )
+
+        result = json.dumps(
+            {
+                "fetched_at": _now_iso(),
+                "story": _format_hn_story(item),
+                "story_text": _clean_hn_text(item.get("text"), params.text_chars),
+                "total_comments": item.get("descendants") or 0,
+                "fetched_comments": fetched,
+                "truncated": truncated,
+                "comments": roots,
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        _cache_set(cache_key, result)
+        return result
+    except Exception as e:
+        return _handle_error(e, "HackerNews")
+
+
+# ---------------------------------------------------------------------------
+# Tool 4: arxiv_latest
 # ---------------------------------------------------------------------------
 
 
@@ -552,7 +949,7 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Tool 4: arxiv_search
+# Tool 5: arxiv_search
 # ---------------------------------------------------------------------------
 
 
@@ -609,7 +1006,7 @@ async def arxiv_search(params: ArxivSearchInput) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Tool 5: lobsters_hot
+# Tool 6: lobsters_hot
 # ---------------------------------------------------------------------------
 
 
@@ -656,7 +1053,7 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
                     "score": item.get("score", 0),
                     "comments": item.get("comment_count", 0),
                     "tags": item.get("tags", []),
-                    "submitter": item.get("submitter_user", {}).get("username", ""),
+                    "submitter": _lobsters_submitter(item),
                     "submitted_at": (item.get("created_at", "")[:16] or "").replace("T", " ")
                     + " UTC",
                     "lobsters_url": item.get("comments_url", ""),
@@ -681,7 +1078,7 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Tool 6: github_trending_ai
+# Tool 7: github_trending_ai
 # ---------------------------------------------------------------------------
 
 
@@ -755,7 +1152,7 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Tool 7: tech_signal_digest
+# Tool 8: tech_signal_digest
 # ---------------------------------------------------------------------------
 
 

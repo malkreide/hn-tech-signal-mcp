@@ -72,13 +72,32 @@ MCP-Enthusiast:innen, Forscher:innen, Prompt Engineers, öffentliche Verwaltung
 
 **Warum nützlich:** Demonstriert die Leistungsfähigkeit, den globalen englischsprachigen Tech-Diskurs direkt mit der lokalen Schweizer Medienresonanz zu verknüpfen, um eine umfassende Situationsanalyse zu erstellen.
 
+### Gegenargumente zu einer Schlagzeile finden
+«Auf HackerNews steht heute eine viel diskutierte Story zu KI in der Bildung. Was sind die stärksten Gegenargumente in der Diskussion?»
+
+→ `hn_top_stories`(feed="top", limit=10)
+→ `hn_discussion`(story_id=<ID aus dem ersten Ergebnis>, max_depth=2, max_comments=30)
+
+**Warum nützlich:** Die Schlagzeile allein sagt nur, *worüber* geredet wird. Der Thread zeigt, *was tatsächlich argumentiert wird* — inklusive der Praxis-Einwände von Leuten, die es produktiv versucht haben. Für eine GL-Vorlage ist das der Unterschied zwischen «Thema ist präsent» und «diese drei Einwände müssen wir beantworten».
+
+### Was Einzelne gerade bauen — vor der Presseberichterstattung
+«Welche neuen KI-Werkzeuge wurden diese Woche auf Show HN veröffentlicht, und woran hängen die Leute laut Ask HN gerade fest?»
+
+→ `hn_top_stories`(feed="show", limit=10)
+→ `hn_top_stories`(feed="ask", limit=10)
+
+**Warum nützlich:** «Show HN» ist die Praxisschicht auf Individualebene — Projekte tauchen dort Wochen vor jeder Berichterstattung auf. «Ask HN» zeigt die offenen Probleme, also die Lücken, in die neue Werkzeuge stossen werden.
+
 ## 🔧 Technische Referenz: Tool-Auswahl nach Anwendungsfall
 
 | Ich möchte… | Tool(s) | Auth nötig? |
 | :--- | :--- | :--- |
 | ...die aktuellsten KI/ML-Paper aus spezifischen Forschungskategorien (z.B. cs.AI) sehen | `arxiv_latest` | Nein |
 | ...die wissenschaftliche arXiv-Datenbank nach bestimmten Stichworten durchsuchen | `arxiv_search` | Nein |
-| ...die aktuellen Top-Stories oder neuesten Beiträge auf HackerNews lesen | `hn_top_stories` | Nein |
+| ...die aktuellen Top-Stories oder neuesten Beiträge auf HackerNews lesen | `hn_top_stories`(feed="top" / "best" / "new") | Nein |
+| ...sehen, was Einzelne gerade veröffentlichen oder wo sie feststecken | `hn_top_stories`(feed="show" / "ask") | Nein |
+| ...offene Stellen im YC-Portfolio als Signal für Firmenwachstum lesen | `hn_top_stories`(feed="job") | Nein |
+| ...die Argumente und Gegenargumente unter einer Story lesen | `hn_discussion` | Nein |
 | ...die gesamte HackerNews-Historie nach spezifischen Themen durchsuchen | `hn_search` | Nein |
 | ...die am heissesten diskutierten, kuratierten Stories auf Lobste.rs sehen | `lobsters_hot` | Nein |
 | ...auf GitHub nach trendenden Repositories zu einem bestimmten Topic suchen | `github_trending_ai` | Nein (Optional `GITHUB_TOKEN`) |
