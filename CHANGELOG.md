@@ -21,11 +21,11 @@ Expands the HackerNews layer to the parts of the [official Firebase API](https:/
 - **One pooled `httpx.AsyncClient` for the process**, created lazily and closed through a new FastMCP lifespan. Previously every request opened and discarded its own client, so a feed fan-out paid a full TCP + TLS handshake per HackerNews item.
 - **The HN item fan-out is bounded** by `HN_MAX_CONCURRENCY` (12) and sized against the connection pool. It was previously unbounded at up to 120 simultaneous requests.
 - `_format_hn_story` reports the item `type` and tolerates absent or null `url` / `score` / `descendants`.
-- CI coverage floor raised from 45 % to 65 % (actual: 69 %) now that the HackerNews paths have respx fixtures.
+- CI coverage floor raised from 45 % to 65 % (actual: 72 %) now that the HackerNews paths have respx fixtures.
 
 ### Fixed
 - **The `job` feed would have returned nothing.** `_fetch_hn_stories` filtered on `type == "story"`, but `jobstories.json` yields items of `type: "job"` — they were dropped silently. Both types are now accepted.
-- `version` in `pyproject.toml` (`0.2.4`) disagreed with `__init__.py` (`0.2.1`). Since `[tool.hatch.version]` reads the latter, builds carried the wrong number. Both are now `0.3.0`, and `test_version_matches_pyproject` fails on any future drift.
+- `version` in `pyproject.toml` (`0.2.4`) disagreed with `__init__.py` (`0.2.1`), so `__version__` under-reported the installed version to anything introspecting the package — and `test_version` asserted the stale value, locking the discrepancy in. Both are now `0.3.0`, and `test_version_matches_pyproject` fails on any future drift.
 - The `User-Agent` header was pinned at `hn-tech-signal-mcp/0.1.0` regardless of the actual release.
 - **`lobsters_hot` was broken against the current Lobste.rs API** (found while verifying the release, unrelated to the HackerNews work). Lobste.rs changed `submitter_user` from an object to a bare username string, so `.get("username")` raised `AttributeError` and every call returned an error string. `_lobsters_submitter` now accepts both shapes.
 
@@ -35,6 +35,9 @@ Expands the HackerNews layer to the parts of the [official Firebase API](https:/
 - No rate-limit headers, and `Cache-Control: no-cache` on every response — caching is entirely the client's responsibility.
 - Feed sizes differ by an order of magnitude: `top`/`new` hold 500 IDs, `best`/`show` 200, `ask` and `job` roughly 30. A uniform `limit` therefore behaves differently per feed.
 - Job items carry no `descendants` key, Ask HN items carry no `url` key. Absent, not null — `.get(key, default)` is not enough on its own where the key can also be present and null.
+
+### Known findings (packaging)
+- **`[tool.hatch.version]` in this project is inert.** It names `src/hn_tech_signal_mcp/__init__.py` as the version source, but `[project]` declares a static `version` and no `dynamic = ["version"]` — so hatchling reads the static field and never consults the file. Verified by building with `pyproject.toml` at `9.9.9` and `__init__.py` at `1.1.1`: the wheel came out `hn_tech_signal_mcp-9.9.9`. This is why PyPI holds `0.2.4` even though `__init__.py` said `0.2.1` at the time. Keep both fields in sync (now enforced by `test_version_matches_pyproject`), or add `dynamic = ["version"]` and drop the static field to make the declared single source of truth actually authoritative.
 
 ## [0.2.1] — 2026-05-12
 
