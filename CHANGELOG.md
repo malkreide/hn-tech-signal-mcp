@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **The MCP Registry publish for `v0.3.0` failed with HTTP 422.** `server.json`'s `description` was 109 characters; the registry caps it at 100. Shortened to 85. PyPI was unaffected — `0.3.0` published successfully, only the registry step of the release workflow failed.
+- `test_server_json_description_within_registry_limit` now fails in CI on a description over 100 characters, and `test_server_json_points_at_this_package` checks the registry entry still references this package. The 422 otherwise surfaces at the very last step of a release, after PyPI has already been published and can no longer be taken back.
+
 ## [0.3.0] — 2026-07-28
 
 Expands the HackerNews layer to the parts of the [official Firebase API](https://github.com/HackerNews/API) the server was not yet using, and closes two resilience gaps in the shared HTTP path. Verified against a live probe of the API on 2026-07-28.

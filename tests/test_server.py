@@ -104,6 +104,41 @@ def test_version_has_exactly_one_source():
     )
 
 
+def _server_json() -> dict:
+    import json
+    from pathlib import Path
+
+    return json.loads((Path(__file__).parent.parent / "server.json").read_text())
+
+
+# The MCP Registry rejects a publish with HTTP 422 when the description exceeds
+# 100 characters. That failure only surfaces after PyPI has already been
+# published, at the last step of the release — so it is worth catching in CI.
+MCP_REGISTRY_DESCRIPTION_MAX = 100
+
+
+def test_server_json_description_within_registry_limit():
+    """server.json description must fit the MCP Registry's 100-character cap."""
+    description = _server_json()["description"]
+    assert description, "server.json needs a description"
+    assert len(description) <= MCP_REGISTRY_DESCRIPTION_MAX, (
+        f"description is {len(description)} chars, registry rejects anything over "
+        f"{MCP_REGISTRY_DESCRIPTION_MAX} with HTTP 422: {description!r}"
+    )
+
+
+def test_server_json_points_at_this_package():
+    """The registry entry must reference the package this repo actually ships."""
+    entry = _server_json()
+    package = entry["packages"][0]
+    assert package["registryType"] == "pypi"
+    assert package["identifier"] == "hn-tech-signal-mcp"
+    # The publish workflow rewrites both version fields from the release tag,
+    # so they are not the source of truth — but a stale value in the repo is
+    # still misleading to anyone reading it.
+    assert entry["version"] == package["version"]
+
+
 def test_hatch_version_path_defines_dunder_version():
     """[tool.hatch.version].path must point at the file that sets __version__."""
     from pathlib import Path
