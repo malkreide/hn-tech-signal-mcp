@@ -34,7 +34,7 @@ from xml.etree.ElementTree import Element as _XmlElement
 
 import httpx
 from defusedxml import ElementTree as _DefusedET
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 logger = logging.getLogger("hn-tech-signal-mcp")
@@ -117,7 +117,7 @@ def _cache_set(key: str, data: Any) -> None:
 
 
 @asynccontextmanager
-async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
+async def _lifespan(_server: MCPServer) -> AsyncIterator[None]:
     """Close the shared HTTP client on shutdown so sockets are released cleanly."""
     try:
         yield
@@ -125,7 +125,7 @@ async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
         await _aclose_shared_client()
 
 
-server = FastMCP(
+server = MCPServer(
     "hn_tech_signal_mcp",
     instructions=(
         "Tech & AI intelligence server aggregating signals from HackerNews, arXiv, "
@@ -1313,9 +1313,12 @@ def main() -> None:
     logger.info("Starting hn-tech-signal-mcp transport=%s", transport)
     if transport == "streamable_http":
         host, port = _resolve_http_bind()
-        server.settings.host = host
-        server.settings.port = port
-        server.run(transport="streamable_http")
+        # mcp 2.x: the bind address is a run() kwarg — MCPServer.settings no
+        # longer carries host/port. The transport name is also corrected here:
+        # "streamable_http" was never a valid value (the SDK accepts only
+        # "stdio", "sse" and "streamable-http"), so this branch raised
+        # ValueError on 1.x too and the HTTP path could never have started.
+        server.run(transport="streamable-http", host=host, port=port)
     else:
         server.run()
 
