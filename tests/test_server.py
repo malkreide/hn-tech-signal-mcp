@@ -72,11 +72,28 @@ def test_imports():
     assert callable(main)
 
 
-def test_version():
-    """Package version is defined."""
+def test_version_matches_the_registry_metadata():
+    """`__version__` is the one source; server.json must agree with it.
+
+    This used to assert a hardcoded literal, which made the test itself a
+    second place to carry the version — the very thing the neighbouring
+    `test_version_has_exactly_one_source` exists to prevent. It also went red
+    on every bump for no reason other than being out of date.
+
+    What is worth asserting is the invariant: `server.json` is written by hand
+    and reaches the MCP Registry, so it can drift away from the package and
+    nothing downstream would object.
+    """
+    import json
+    from pathlib import Path
+
     import hn_tech_signal_mcp
 
-    assert hn_tech_signal_mcp.__version__ == "0.3.0"
+    server_json = json.loads(
+        (Path(__file__).parent.parent / "server.json").read_text(encoding="utf-8")
+    )
+    assert server_json["version"] == hn_tech_signal_mcp.__version__
+    assert server_json["packages"][0]["version"] == hn_tech_signal_mcp.__version__
 
 
 def _pyproject() -> dict:
