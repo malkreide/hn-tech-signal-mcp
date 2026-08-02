@@ -170,6 +170,43 @@ def test_hatch_version_path_defines_dunder_version():
     )
 
 
+def test_user_agent_tracks_the_package_version():
+    """Outbound requests must report the version the package actually is.
+
+    The header carried a hardcoded `0.3.0` through the 0.4.0 bump, so every
+    request to HN, arXiv, Lobste.rs and GitHub misreported the client. Nothing
+    failed, because no other test looked at the header.
+    """
+    from pathlib import Path
+
+    import hn_tech_signal_mcp
+    from hn_tech_signal_mcp.server import _BASE_HEADERS
+
+    assert _BASE_HEADERS["User-Agent"] == (
+        f"hn-tech-signal-mcp/{hn_tech_signal_mcp.__version__}"
+    )
+    src = Path(__file__).parent.parent / "src" / "hn_tech_signal_mcp" / "server.py"
+    assert f"hn-tech-signal-mcp/{hn_tech_signal_mcp.__version__}" not in src.read_text(), (
+        "User-Agent must interpolate __version__, not spell the version out"
+    )
+
+
+def test_user_agent_reaches_every_outbound_request():
+    """_headers_for is the single place the header is built, for all four hosts."""
+    from hn_tech_signal_mcp.server import (
+        _BASE_HEADERS,
+        ARXIV_BASE_URL,
+        GITHUB_BASE_URL,
+        HN_BASE_URL,
+        LOBSTERS_BASE_URL,
+        _headers_for,
+    )
+
+    expected = _BASE_HEADERS["User-Agent"]
+    for url in (HN_BASE_URL, ARXIV_BASE_URL, LOBSTERS_BASE_URL, GITHUB_BASE_URL):
+        assert _headers_for(url)["User-Agent"] == expected
+
+
 def test_constants():
     """Key constants are defined."""
     from hn_tech_signal_mcp.server import (

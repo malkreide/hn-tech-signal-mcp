@@ -37,6 +37,8 @@ from defusedxml import ElementTree as _DefusedET
 from mcp.server.mcpserver import MCPServer
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from . import __version__
+
 logger = logging.getLogger("hn-tech-signal-mcp")
 
 
@@ -143,7 +145,9 @@ server = MCPServer(
 
 _BASE_HEADERS = {
     "Accept": "application/json",
-    "User-Agent": "hn-tech-signal-mcp/0.3.0",
+    # Derived from __version__, never a literal: a hardcoded string here went
+    # stale at the 0.4.0 bump and misreported the version on every request.
+    "User-Agent": f"hn-tech-signal-mcp/{__version__}",
 }
 
 
