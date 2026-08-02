@@ -7,15 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-02
+
+This release exists so that a repair reaches the people running the server:
+**the published `0.3.0` cannot be installed any more.** It declares `mcp` with
+no upper bound, and `mcp` 2.0.0 removed `mcp.server.fastmcp` — so a fresh
+`pip install hn-tech-signal-mcp` resolves to 2.0.0 and the console script dies
+on startup with `ModuleNotFoundError`. Measured against the real artefact in an
+empty venv, cold and warm interpreter alike.
+
+The `v0.3.0` tag predates the 2.x migration: the fix has been on `main` ever
+since and was never released, while `main` kept the same version number as the
+broken artefact — so nothing contradicted it.
+
+### Changed (breaking)
+
+- **Migrated to the `mcp` Python SDK 2.x.** The server API moved from
+  `mcp.server.fastmcp` to `mcp.server.mcpserver` with no compatibility shim,
+  and the dependency is now `mcp>=2.0.0,<3`. The tool surface is unchanged —
+  what breaks is embedding this server's Python API and the dependency floor.
+  Anyone who must stay on `mcp` 1.x should stay on 0.3.0, and pin an upper
+  bound themselves, because the published 0.3.0 has none.
+
 ### Fixed
 
-- **Capped `mcp` at `<2`.** `mcp` 2.0.0, published 2026-07-28, removed
-  `mcp.server.fastmcp` — the module this server imports. With the previous
-  unbounded `>=1.28.1` every fresh resolve picked 2.0.0 and failed at import
-  with `ModuleNotFoundError`, in CI and for anyone running `pip install` alike.
-  Verified in both directions: 2.0.0 fails, `<2` resolves to 1.29.0 and imports
-  cleanly. Migrating to the 2.x API (`mcp.server.mcpserver`) stays a separate,
-  deliberate piece of work.
 - **The MCP Registry publish for `v0.3.0` failed with HTTP 422.** `server.json`'s `description` was 109 characters; the registry caps it at 100. Shortened to 85. PyPI was unaffected — `0.3.0` published successfully, only the registry step of the release workflow failed.
 - `test_server_json_description_within_registry_limit` now fails in CI on a description over 100 characters, and `test_server_json_points_at_this_package` checks the registry entry still references this package. The 422 otherwise surfaces at the very last step of a release, after PyPI has already been published and can no longer be taken back.
 
