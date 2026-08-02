@@ -182,11 +182,10 @@ def test_user_agent_tracks_the_package_version():
     import hn_tech_signal_mcp
     from hn_tech_signal_mcp.server import _BASE_HEADERS
 
-    assert _BASE_HEADERS["User-Agent"] == (
-        f"hn-tech-signal-mcp/{hn_tech_signal_mcp.__version__}"
-    )
+    expected = f"hn-tech-signal-mcp/{hn_tech_signal_mcp.__version__}"
+    assert _BASE_HEADERS["User-Agent"] == expected
     src = Path(__file__).parent.parent / "src" / "hn_tech_signal_mcp" / "server.py"
-    assert f"hn-tech-signal-mcp/{hn_tech_signal_mcp.__version__}" not in src.read_text(), (
+    assert expected not in src.read_text(), (
         "User-Agent must interpolate __version__, not spell the version out"
     )
 
