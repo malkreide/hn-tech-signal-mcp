@@ -9,12 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.1] — 2026-08-02
 
-Ships everything `0.4.0` described. **`0.4.0` was tagged but never published:**
-the tag exists on GitHub, no release was ever cut from it, so the release
-workflow — which fires on `release: published` — never ran, and PyPI's latest
-stayed at the broken `0.3.0`. Rather than move an existing tag, the contents go
-out under `0.4.1` together with the fix below. Everything in the `0.4.0` section
-is part of this release; read the two together.
+Follows `0.4.0` by twelve minutes. The `v0.4.0` tag was cut from `main` before
+the fix below landed, so the published `0.4.0` artefact reports a version it is
+not — harmless to callers, but wrong in every request it makes. Everything the
+`0.4.0` section describes applies here unchanged; this release adds only the
+fix below.
 
 ### Fixed
 
