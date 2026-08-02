@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The `User-Agent` header reported `0.3.0` on every outbound request.** It was
+  a string literal in `_BASE_HEADERS`, so the 0.4.0 bump left it behind and HN,
+  arXiv, Lobste.rs and GitHub all saw a client version that no longer existed.
+  It is now interpolated from `__version__`, which makes `__init__.py` the only
+  place a version is written — the same invariant the version tests already
+  guard for `pyproject.toml` and `server.json`.
+- `test_user_agent_tracks_the_package_version` fails both on a mismatch and on
+  the literal coming back, and `test_user_agent_reaches_every_outbound_request`
+  pins the header to all four hosts. Nothing asserted on the header before, so
+  the drift was invisible to CI.
+
 ## [0.4.0] — 2026-08-02
 
 This release exists so that a repair reaches the people running the server:
