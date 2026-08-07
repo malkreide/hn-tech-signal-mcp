@@ -28,7 +28,7 @@ jobs:
         run: uv pip install --system -e ".[dev]" || uv pip install --system -e .
 
       - name: Install test deps
-        run: uv pip install --system pytest pytest-asyncio pytest-cov respx ruff
+        run: uv pip install --system pytest pytest-asyncio pytest-cov respx "ruff==0.16.1"
 
       - name: Lint (ruff check)
         run: ruff check src tests
