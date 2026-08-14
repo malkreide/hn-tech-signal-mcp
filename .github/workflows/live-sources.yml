@@ -13,7 +13,7 @@ on:
 
 permissions:
   contents: read
-  issues: write # ein roter Lauf eröffnet oder kommentiert ein Issue
+  issues: write # rot eröffnet oder kommentiert ein Issue, grün schliesst es
 
 concurrency:
   group: live-sources
@@ -23,6 +23,15 @@ jobs:
   live:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    env:
+      # Nur der Default-Branch spricht für das Repository. Ein Dispatch auf
+      # einem Feature-Branch läuft und wird auch rot, rührt das Issue aber
+      # nicht an: ein grüner Branch-Lauf sagt nichts über den Default-Branch,
+      # und hätte am 14.8.2026 beinahe einen laufenden Ausfall zugedeckt.
+      # Der Fallback greift nur, falls das Event kein `repository` mitbringt;
+      # dann bleibt das Issue offen, was der harmlosere Ausgang ist.
+      IS_DEFAULT_BRANCH: ${{ github.ref_name == (github.event.repository.default_branch || 'main') }}
 
     steps:
       - uses: actions/checkout@v7
@@ -56,7 +65,7 @@ jobs:
 
       - name: Report a red run as an issue
         # Ein roter geplanter Lauf, den niemand sieht, ist so gut wie kein Lauf.
-        if: failure()
+        if: failure() && env.IS_DEFAULT_BRANCH == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -78,3 +87,26 @@ jobs:
           else
             gh issue create --title "Live-Quellencheck rot" --label live-drift --body "$body"
           fi
+
+      - name: Close the drift issue once the sources answer again
+        # Sonst bleibt das Issue nach der Erholung offen stehen und der nächste
+        # echte Ausfall kommentiert nur noch an ein Ticket, das niemand mehr
+        # liest — ein Melder, der nie entwarnt, wird ignoriert.
+        if: success() && env.IS_DEFAULT_BRANCH == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          # Bewusst `gh api` statt `gh issue list --label`: dieser Schritt darf
+          # auf einem Repo, in dem das Label noch nie angelegt wurde, nicht
+          # scheitern — ein grüner Lauf würde sonst am Aufräumen rot. Der
+          # Endpunkt liefert auch Pull Requests, die hier herausgefiltert
+          # werden.
+          open_issues=$(gh api \
+            "repos/$GITHUB_REPOSITORY/issues?state=open&labels=live-drift&per_page=100" \
+            --jq '.[] | select(has("pull_request") | not) | .number')
+          for number in $open_issues; do
+            gh issue comment "$number" --body "Die Quellen antworten wieder wie erwartet: $RUN_URL"
+            gh issue close "$number" --reason completed
+          done
