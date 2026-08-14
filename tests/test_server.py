@@ -1051,6 +1051,219 @@ def test_hn_discussion_input_validation():
 
 
 # ---------------------------------------------------------------------------
+# tech_signal_digest: GitHub query shape, and one source failing alone
+#
+# Both defects were found by the scheduled live run on 2026-08-14, not by this
+# file. The digest asked GitHub for "topic:llm OR topic:ai-agents OR topic:mcp
+# stars:>=100"; GitHub answers that form with 422, and the single raise inside
+# the gather turned every digest call into an error string — the aggregate tool
+# was broken for every caller while all unit tests stayed green.
+# ---------------------------------------------------------------------------
+
+HN_TOP = "https://hacker-news.firebaseio.com/v0/topstories.json"
+ARXIV_QUERY = "https://export.arxiv.org/api/query"
+LOBSTERS_HOTTEST = "https://lobste.rs/hottest.json"
+GITHUB_SEARCH = "https://api.github.com/search/repositories"
+
+ARXIV_FEED = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <entry>
+    <id>http://arxiv.org/abs/2608.00001v1</id>
+    <title>On agent scaffolds</title>
+    <summary>We study agent scaffolds.</summary>
+    <published>2026-08-13T00:00:00Z</published>
+    <author><name>A. Autorin</name></author>
+    <arxiv:primary_category term="cs.AI"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2608.00001v1"/>
+  </entry>
+</feed>
+"""
+
+
+def _repo(full_name: str, topics: list[str] | None = None) -> dict:
+    return {
+        "full_name": full_name,
+        "description": f"{full_name} description",
+        "stargazers_count": 500,
+        "forks_count": 10,
+        "language": "Python",
+        "topics": topics or ["llm"],
+        "updated_at": "2026-08-13T00:00:00Z",
+        "html_url": f"https://github.com/{full_name}",
+    }
+
+
+def _hn_story(sid: int) -> dict:
+    return {
+        "id": sid,
+        "type": "story",
+        "by": "someone",
+        "time": 1700000000,
+        "title": f"HN story {sid}",
+        "url": f"https://example.test/{sid}",
+        "score": 10,
+        "descendants": 1,
+    }
+
+
+def _mock_digest_sources(
+    *,
+    github: dict[str, httpx.Response] | None = None,
+    hn: httpx.Response | None = None,
+    arxiv: httpx.Response | None = None,
+    lobsters: httpx.Response | None = None,
+) -> list[str]:
+    """Register all four digest sources. Returns the GitHub queries as sent.
+
+    `github` maps a topic to the response for that topic's search; topics left
+    out answer with one repo. Every other argument replaces that source's
+    healthy default.
+    """
+    queries: list[str] = []
+    per_topic = github or {}
+
+    respx.get(HN_TOP).mock(return_value=hn or httpx.Response(200, json=[1, 2]))
+    _mock_items({1: _hn_story(1), 2: _hn_story(2)})
+    respx.get(ARXIV_QUERY).mock(return_value=arxiv or httpx.Response(200, text=ARXIV_FEED))
+    respx.get(LOBSTERS_HOTTEST).mock(
+        return_value=lobsters
+        or httpx.Response(
+            200,
+            json=[{"title": "Lobsters story", "url": "https://example.test/l", "score": 5}],
+        )
+    )
+
+    def _github(request: httpx.Request) -> httpx.Response:
+        q = request.url.params.get("q", "")
+        queries.append(q)
+        for topic, response in per_topic.items():
+            if q.startswith(f"topic:{topic} "):
+                return response
+        return httpx.Response(200, json={"items": [_repo(f"owner/{q.split()[0][6:]}")]})
+
+    respx.get(GITHUB_SEARCH).mock(side_effect=_github)
+    return queries
+
+
+async def _digest(**kwargs) -> str:
+    from hn_tech_signal_mcp.server import TechSignalDigestInput, tech_signal_digest
+
+    defaults = {"focus": None, "hn_limit": 3, "arxiv_limit": 3}
+    defaults.update({"lobsters_limit": 3, "github_limit": 3})
+    defaults.update(kwargs)
+    return await tech_signal_digest(TechSignalDigestInput(**defaults))
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_asks_github_one_topic_at_a_time():
+    """The 422 regression: never `topic:a OR topic:b`, one search per topic."""
+    from hn_tech_signal_mcp.server import DIGEST_GITHUB_TOPICS
+
+    queries = _mock_digest_sources()
+    json.loads(await _digest())
+
+    assert len(queries) == len(DIGEST_GITHUB_TOPICS)
+    assert sorted(queries) == sorted(f"topic:{t} stars:>=100" for t in DIGEST_GITHUB_TOPICS)
+    for q in queries:
+        assert " OR " not in q, f"GitHub rejects this with 422: {q!r}"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_merges_topics_and_dedupes_repos():
+    """A repo tagged with two topics is one entry, not two."""
+    both = httpx.Response(200, json={"items": [_repo("owner/shared", ["llm", "mcp"])]})
+    _mock_digest_sources(github={"llm": both, "mcp": both, "ai-agents": both})
+
+    repos = json.loads(await _digest())["sources"]["github"]["repos"]
+    assert [r["name"] for r in repos] == ["owner/shared"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_names_the_topics_it_could_not_sweep():
+    """A partial GitHub sweep says which topics are missing, and is not cached."""
+    from hn_tech_signal_mcp.server import _cache
+
+    _mock_digest_sources(github={"mcp": httpx.Response(422)})
+
+    github = json.loads(await _digest())["sources"]["github"]
+    assert github["incomplete_topics"] == ["mcp"]
+    assert github["count"] > 0, "the two healthy topics still have to arrive"
+    assert not any(k.startswith("digest|") for k in _cache)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_survives_a_single_dead_source():
+    """Lobste.rs down must not take HN, arXiv and GitHub with it."""
+    _mock_digest_sources(lobsters=httpx.Response(404))
+
+    data = json.loads(await _digest())
+    assert data["degraded_sources"] == ["lobsters"]
+    assert data["sources"]["lobsters"]["count"] == 0
+    assert "HTTP 404" in data["sources"]["lobsters"]["error"]
+    for healthy in ("hn", "arxiv", "github"):
+        assert data["sources"][healthy]["count"] > 0, healthy
+        assert "error" not in data["sources"][healthy]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_degraded_digest_is_not_cached():
+    """An outage must not outlive itself in the cache."""
+    from hn_tech_signal_mcp.server import _cache
+
+    _mock_digest_sources(lobsters=httpx.Response(404))
+    await _digest()
+    assert not any(k.startswith("digest|") for k in _cache)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_healthy_digest_is_cached():
+    """The counter-check to the two above: without degradation it does cache."""
+    from hn_tech_signal_mcp.server import _cache
+
+    _mock_digest_sources()
+    await _digest()
+    assert any(k.startswith("digest|") for k in _cache)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_reports_a_total_outage_as_an_error():
+    """All four down is an outage, not a digest with four empty sections."""
+    dead = httpx.Response(404)
+    _mock_digest_sources(
+        hn=dead,
+        arxiv=httpx.Response(404),
+        lobsters=httpx.Response(404),
+        github={t: httpx.Response(404) for t in ("llm", "ai-agents", "mcp")},
+    )
+
+    result = await _digest()
+    assert result.startswith("[digest.")
+    assert "HTTP 404" in result
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(result)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_github_raises_only_when_every_topic_fails():
+    """The helper's contract: total GitHub failure is a failed source."""
+    _mock_digest_sources(github={t: httpx.Response(404) for t in ("llm", "ai-agents", "mcp")})
+
+    data = json.loads(await _digest())
+    assert data["degraded_sources"] == ["github"]
+    assert data["sources"]["github"]["count"] == 0
+    assert "HTTP 404" in data["sources"]["github"]["error"]
+    assert data["sources"]["hn"]["count"] > 0
+
+
+# ---------------------------------------------------------------------------
 # Live integration tests – require network
 # ---------------------------------------------------------------------------
 

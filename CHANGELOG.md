@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`tech_signal_digest` was broken for every caller, and had been for a
+  while.** It asked GitHub for
+  `topic:llm OR topic:ai-agents OR topic:mcp stars:>=100`; GitHub answers that
+  form with **HTTP 422**, while the single-topic form used by
+  `github_trending_ai` is accepted. The digest now runs one search per topic
+  and merges the hits, collapsing duplicates on `full_name`. Topics that fail
+  are named in `incomplete_topics` rather than quietly shortening the list —
+  a repo count says nothing about how many topics were actually asked.
+- **One dead source took the other three with it.** A single raise inside the
+  `asyncio.gather` turned the whole digest into an error string, so a GitHub
+  outage also cost the caller HackerNews, arXiv and Lobste.rs. Sources are now
+  collected independently: a source that cannot be reached appears with
+  `count: 0` and an `error`, and its key is listed in the new
+  `degraded_sources`. Only a total outage still returns a plain error string.
+  A degraded digest is not cached — it would outlive the outage it describes.
+
+  Both defects were found by the scheduled live run the day it was added, not
+  by the unit tests, which were green throughout. `ci.yml` deselects the live
+  tests with `-m "not live"`, so nothing exercised the digest's real query
+  until `live-sources.yml` started running on a schedule.
+
 - **The retry had six defects, all inherited from the shared template.** This
   server copied its retry from `reference/retry_backoff.py` in
   [mcp-data-source-probe-skill](https://github.com/malkreide/mcp-data-source-probe-skill),

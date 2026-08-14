@@ -63,6 +63,14 @@ GITHUB_BASE_URL = "https://api.github.com"
 DEFAULT_TIMEOUT = 20.0
 ARXIV_AI_CATEGORIES = ["cs.AI", "cs.LG", "cs.CL", "cs.CV", "cs.NE", "stat.ML"]
 
+# Topics the digest sweeps on GitHub. One search per topic, never
+# "topic:llm OR topic:ai-agents OR topic:mcp": GitHub answers that form with
+# HTTP 422, which is what made tech_signal_digest return an error string on
+# every single call until 2026-08-14. The single-topic form is what
+# github_trending_ai uses and it is accepted. See _fetch_digest_github.
+DIGEST_GITHUB_TOPICS = ("llm", "ai-agents", "mcp")
+DIGEST_GITHUB_MIN_STARS = 100
+
 # HN story feeds. The Firebase API exposes one endpoint per feed following the
 # pattern "<feed>stories.json". 'job' is included but yields items of type
 # "job", not "story" — see _fetch_hn_stories.
@@ -1297,6 +1305,52 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
 # ---------------------------------------------------------------------------
 
 
+async def _fetch_digest_github(per_topic: int) -> tuple[list[dict], list[str]]:
+    """Search GitHub once per topic and merge the hits.
+
+    Returns the merged repositories and the topics that failed. A caller that
+    drops the second half reports a short list as a complete one — the topics
+    are the difference between "nothing new" and "we never asked".
+
+    Raises the first error if every topic failed, so a total GitHub outage
+    still surfaces as a failed source rather than an empty result set.
+    """
+    results = await asyncio.gather(
+        *[
+            _get(
+                f"{GITHUB_BASE_URL}/search/repositories",
+                {
+                    "q": f"topic:{topic} stars:>={DIGEST_GITHUB_MIN_STARS}",
+                    "sort": "updated",
+                    "order": "desc",
+                    "per_page": per_topic,
+                },
+            )
+            for topic in DIGEST_GITHUB_TOPICS
+        ],
+        return_exceptions=True,
+    )
+
+    merged: dict[str, dict] = {}
+    failed: list[str] = []
+    first_error: Optional[BaseException] = None
+
+    for topic, result in zip(DIGEST_GITHUB_TOPICS, results):
+        if isinstance(result, BaseException):
+            failed.append(topic)
+            first_error = first_error or result
+            continue
+        for repo in result.get("items", []):
+            # A repo carrying two of the topics arrives twice; the first hit
+            # wins, which keeps the 'updated' order of the earlier topic.
+            merged.setdefault(repo["full_name"], repo)
+
+    if len(failed) == len(DIGEST_GITHUB_TOPICS) and first_error is not None:
+        raise first_error
+
+    return list(merged.values()), failed
+
+
 @server.tool(
     name="tech_signal_digest",
     annotations={
@@ -1323,8 +1377,16 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
             - github_limit (int): GitHub repos (1–10)
 
     Returns:
-        str: JSON digest with generated_at, focus, sources{hn, arxiv, lobsters, github}.
-             Each source has label, count, and its items list.
+        str: JSON digest with generated_at, focus, degraded_sources[] and
+             sources{hn, arxiv, lobsters, github}. Each source has label,
+             count and its items list.
+
+             A source that could not be reached still appears, with count 0
+             and an 'error' describing why, and its key is listed in
+             degraded_sources — treat its absence as unknown, not as zero.
+             The GitHub section may carry 'incomplete_topics' when part of
+             the topic sweep failed. Only if all four sources fail does this
+             tool return a plain error string instead of JSON.
     """
     focus_lower = params.focus.lower() if params.focus else None
     cache_key = (
@@ -1343,29 +1405,50 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
             if focus_lower in " ".join(str(item.get(f, "")) for f in fields).lower()
         ]
 
-    try:
-        hn_raw, arxiv_raw, lob_raw, gh_raw = await asyncio.gather(
-            _fetch_hn_stories("top", params.hn_limit * 4),
-            _fetch_arxiv("cat:cs.AI OR cat:cs.LG OR cat:cs.CL", params.arxiv_limit * 2),
-            _get(f"{LOBSTERS_BASE_URL}/hottest.json"),
-            _get(
-                f"{GITHUB_BASE_URL}/search/repositories",
-                {
-                    "q": "topic:llm OR topic:ai-agents OR topic:mcp stars:>=100",
-                    "sort": "updated",
-                    "order": "desc",
-                    "per_page": params.github_limit * 2,
-                },
-            ),
-        )
+    # One failing source used to take the other three with it: a single raise
+    # inside the gather left the whole digest an error string. Each source is
+    # now collected on its own and reported as failed in place.
+    hn_raw, arxiv_raw, lob_raw, gh_raw = await asyncio.gather(
+        _fetch_hn_stories("top", params.hn_limit * 4),
+        # arXiv's own query language does support OR — unlike GitHub's, which
+        # rejects it with 422. Do not "harmonise" these two.
+        _fetch_arxiv("cat:cs.AI OR cat:cs.LG OR cat:cs.CL", params.arxiv_limit * 2),
+        _get(f"{LOBSTERS_BASE_URL}/hottest.json"),
+        _fetch_digest_github(params.github_limit * 2),
+        return_exceptions=True,
+    )
 
-        hn_stories = _matches_focus([_format_hn_story(s) for s in hn_raw], "title")[
-            : params.hn_limit
-        ]
+    # CancelledError and friends are not a source outage; let them through.
+    for outcome in (hn_raw, arxiv_raw, lob_raw, gh_raw):
+        if isinstance(outcome, BaseException) and not isinstance(outcome, Exception):
+            raise outcome
 
-        arxiv_papers = _matches_focus(arxiv_raw, "title", "abstract")[: params.arxiv_limit]
+    degraded: list[str] = []
+    errors: list[str] = []
 
-        lob_stories = _matches_focus(
+    def _section(key: str, outcome: Any, label: str, items_key: str, build: Any) -> dict:
+        """Build one source section, or record why it is missing.
+
+        A failed source reports count 0 *and* an error. Without the error a
+        reader cannot tell an outage from a quiet day, and would summarise a
+        broken digest as if it were complete.
+        """
+        if isinstance(outcome, Exception):
+            degraded.append(key)
+            message = _handle_error(outcome, f"digest.{key}")
+            errors.append(message)
+            return {"label": label, "count": 0, items_key: [], "error": message}
+        items = build(outcome)
+        return {"label": label, "count": len(items), items_key: items}
+
+    def _build_hn(raw: list[dict]) -> list[dict]:
+        return _matches_focus([_format_hn_story(s) for s in raw], "title")[: params.hn_limit]
+
+    def _build_arxiv(raw: list[dict]) -> list[dict]:
+        return _matches_focus(raw, "title", "abstract")[: params.arxiv_limit]
+
+    def _build_lobsters(raw: list[dict]) -> list[dict]:
+        return _matches_focus(
             [
                 {
                     "title": s.get("title", ""),
@@ -1374,13 +1457,15 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
                     "tags": s.get("tags", []),
                     "lobsters_url": s.get("comments_url", ""),
                 }
-                for s in lob_raw
+                for s in raw
             ],
             "title",
             "tags",
         )[: params.lobsters_limit]
 
-        gh_repos = _matches_focus(
+    def _build_github(raw: tuple[list[dict], list[str]]) -> list[dict]:
+        repos, _ = raw
+        return _matches_focus(
             [
                 {
                     "name": r["full_name"],
@@ -1390,36 +1475,45 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
                     "topics": r.get("topics", [])[:5],
                     "url": r.get("html_url", ""),
                 }
-                for r in gh_raw.get("items", [])
+                for r in repos
             ],
             "name",
             "description",
         )[: params.github_limit]
 
-        digest = {
-            "generated_at": _now_iso(),
-            "focus": params.focus or "broad tech & AI",
-            "sources": {
-                "hn": {"label": "HackerNews", "count": len(hn_stories), "stories": hn_stories},
-                "arxiv": {
-                    "label": "arXiv (cs.AI/cs.LG/cs.CL)",
-                    "count": len(arxiv_papers),
-                    "papers": arxiv_papers,
-                },
-                "lobsters": {
-                    "label": "Lobste.rs",
-                    "count": len(lob_stories),
-                    "stories": lob_stories,
-                },
-                "github": {"label": "GitHub Trending", "count": len(gh_repos), "repos": gh_repos},
-            },
-        }
+    sources = {
+        "hn": _section("hn", hn_raw, "HackerNews", "stories", _build_hn),
+        "arxiv": _section("arxiv", arxiv_raw, "arXiv (cs.AI/cs.LG/cs.CL)", "papers", _build_arxiv),
+        "lobsters": _section("lobsters", lob_raw, "Lobste.rs", "stories", _build_lobsters),
+        "github": _section("github", gh_raw, "GitHub Trending", "repos", _build_github),
+    }
 
-        result = json.dumps(digest, indent=2, ensure_ascii=False)
+    # Every source down is an outage, not a digest. Report it as one, the way
+    # this tool did before it learned to tolerate partial failure.
+    if len(degraded) == len(sources):
+        return errors[0]
+
+    # A GitHub sweep that lost some topics is short by however much those
+    # topics held. Saying so is the difference between a thin digest and a
+    # wrong one.
+    if not isinstance(gh_raw, BaseException):
+        _, failed_topics = gh_raw
+        if failed_topics:
+            sources["github"]["incomplete_topics"] = failed_topics
+
+    digest = {
+        "generated_at": _now_iso(),
+        "focus": params.focus or "broad tech & AI",
+        "degraded_sources": degraded,
+        "sources": sources,
+    }
+
+    result = json.dumps(digest, indent=2, ensure_ascii=False)
+    # A degraded digest is not cached: it would outlive the outage it
+    # describes and keep serving it after the source came back.
+    if not degraded and not sources["github"].get("incomplete_topics"):
         _cache_set(cache_key, result)
-        return result
-    except Exception as e:
-        return _handle_error(e, "digest")
+    return result
 
 
 # ---------------------------------------------------------------------------
