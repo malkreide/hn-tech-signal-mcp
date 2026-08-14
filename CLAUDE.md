@@ -58,12 +58,12 @@ ruff format --check src tests
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
 ```
 
-**Befund — Live-Tests laufen nie geplant (DRIFT-005):** `tests/test_server.py`
-hat 11 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub.
-Die einzigen Workflows sind `ci.yml` (push/PR auf main) und `publish.yml`
-(on release) — kein `schedule:`/cron. Live-Tests sind ausschliesslich per
-`-m "not live"` ausgeschlossen, laufen also nur, wenn jemand sie von Hand
-startet. Ein Schema-Wechsel bei einer Quelle fällt niemandem auf.
+**Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die 11
+`@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
+täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
+mit Label `live-drift` oder kommentiert das offene; ohne das sieht ein roter
+Zeitplan niemand. `ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab.
+Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
 **Befund — keine aufgezeichneten Antworten:** die respx-Mocks in
 `tests/test_server.py` sind handgeschrieben, ohne Aufnahmedatum. Das

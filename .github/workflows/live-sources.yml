@@ -1,0 +1,80 @@
+name: Live sources
+
+# DRIFT-005: die `live`-Tests sind das Einzige, was bemerkt, wenn HackerNews,
+# arXiv, Lobste.rs oder GitHub die Form ihrer Antwort ändern. `ci.yml` wählt sie
+# per `-m "not live"` ab — ohne diesen Zeitplan laufen sie nur von Hand, und ein
+# Schema-Wechsel fällt erst auf, wenn jemand den Server produktiv benutzt.
+on:
+  schedule:
+    # Täglich 05:17 UTC. Nicht zur vollen Stunde: dort staut sich die Queue.
+    # Achtung: GitHub deaktiviert `schedule` nach 60 Tagen ohne Repo-Aktivität.
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # ein roter Lauf eröffnet oder kommentiert ein Issue
+
+concurrency:
+  group: live-sources
+  cancel-in-progress: false
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          # Eine Version genügt: geprüft wird die Quelle, nicht die
+          # Python-Kompatibilität — dafür ist die Matrix in `ci.yml` da.
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: uv pip install --system -e .
+
+      # Bewusst ohne ruff: der Pin lebt genau einmal, in `ci.yml`. Ein zweiter
+      # Pin hier wäre die Abweichung, vor der CLAUDE.md warnt. Gelintet wird in
+      # der CI, nicht hier.
+      - name: Install test deps
+        run: uv pip install --system pytest pytest-asyncio respx
+
+      - name: Run live tests
+        env:
+          # Hebt das GitHub-Limit von 60 auf 5'000 req/h — der Server liest die
+          # Variable selbst (siehe `server.py`). Das eingebaute Token reicht,
+          # es muss kein Secret gesetzt werden.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: PYTHONPATH=src pytest tests/ -m live -v
+
+      - name: Report a red run as an issue
+        # Ein roter geplanter Lauf, den niemand sieht, ist so gut wie kein Lauf.
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh label create live-drift \
+            --color B60205 \
+            --description "Geplanter Lauf gegen eine externe Quelle ist rot" \
+            --force
+          body=$(printf '%s\n' \
+            "Der geplante Live-Lauf ist rot: $RUN_URL" \
+            "" \
+            "Erst die Quelle abfragen, dann einordnen — nicht aus der" \
+            "Fehlermeldung schliessen. Eine rote Zusicherung heisst oft nicht," \
+            "dass Daten fehlen, sondern dass die Quelle ihr Schema geändert hat.")
+          existing=$(gh issue list --label live-drift --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "Live-Quellencheck rot" --label live-drift --body "$body"
+          fi
