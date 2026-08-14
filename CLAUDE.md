@@ -61,8 +61,11 @@ PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-rep
 **Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die 11
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
 täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
-mit Label `live-drift` oder kommentiert das offene; ohne das sieht ein roter
-Zeitplan niemand. `ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab.
+mit Label `live-drift` oder kommentiert das offene, ein grüner schliesst es
+wieder; ohne das sieht ein roter Zeitplan niemand, und ein Melder, der nie
+entwarnt, wird ignoriert. Beides nur auf dem Default-Branch: ein grüner
+Dispatch auf einem Feature-Branch sagt nichts über `main`.
+`ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
 **Befund — keine aufgezeichneten Antworten:** die respx-Mocks in
