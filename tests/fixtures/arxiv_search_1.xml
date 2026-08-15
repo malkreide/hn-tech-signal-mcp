@@ -1,0 +1,120 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/Sihv7M8qh44HktLRpAS846XvhmE</id>
+  <title>arXiv Query: search_query=all:retrieval OR all:augmented OR all:generation&amp;id_list=&amp;start=0&amp;max_results=3</title>
+  <updated>2026-08-15T16:50:16Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=all:retrieval+OR+(all:augmented+OR+all:generation)&amp;start=0&amp;max_results=3&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>3</opensearch:itemsPerPage>
+  <opensearch:totalResults>990555</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13561v1</id>
+    <title>Experimental Quantum Key Distribution in an Indefinite Causal Order</title>
+    <updated>2026-08-13T17:59:58Z</updated>
+    <link href="https://arxiv.org/abs/2608.13561v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13561v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>In quantum physics the order in which different operations occur can be placed in superposition. The resulting processes have an indefinite causal order and are both of fundamental interest and can be viewed as a novel quantum resource that enables a variety of new protocols. Here we report an experimental implementation of one such protocol, where we perform BB84-like quantum cryptography by placing Alice and Bob's measurement-and-preparation operations in a photonic quantum SWITCH. By embedding Alice and Bob within the quantum SWITCH, the protocol achieves an average eavesdropper detection probability of $0.15 \pm 0.02$ per shared qubit, with eavesdropper detection performed through measurements of the control qubit rather than by comparing the key. Unlike the standard BB84 and related schemes, which detect eavesdropping by publicly revealing and discarding a fraction of the raw key, our approach requires no disclosure of key material: every retained qubit can, in principle, be tested for eavesdropping while remaining available for key generation. The experiment relies on a new measurement technique that allows the polarization of a photon to be measured inside the quantum SWITCH without destroying path coherence. Although the present implementation does not yet constitute a secure quantum key distribution protocol, owing to the post-selection required for measurements within the quantum SWITCH, it provides a proof of principle that indefinite causal order can be exploited to detect eavesdropping without sacrificing key bits.</summary>
+    <category term="quant-ph" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:59:58Z</published>
+    <arxiv:comment>21 pages, 7 figures</arxiv:comment>
+    <arxiv:primary_category term="quant-ph"/>
+    <author>
+      <name>Yann Valibouse</name>
+    </author>
+    <author>
+      <name>Martí Cladera-Rosselló</name>
+    </author>
+    <author>
+      <name>Michael Antesberger</name>
+    </author>
+    <author>
+      <name>Hector Spencer-Wood</name>
+    </author>
+    <author>
+      <name>Kyrylo Simonov</name>
+    </author>
+    <author>
+      <name>Patrik Sund</name>
+    </author>
+    <author>
+      <name>Mathieu Bozzio</name>
+    </author>
+    <author>
+      <name>Philip Walther</name>
+    </author>
+    <author>
+      <name>Lee A. Rozema</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13560v1</id>
+    <title>AutoDesign: Meta-Harness Optimization for Long-Horizon Agentic Design</title>
+    <updated>2026-08-13T17:59:57Z</updated>
+    <link href="https://arxiv.org/abs/2608.13560v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13560v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Transforming multimodal sources into condensed and structured media outputs can be fundamentally conceptualized as a long-horizon agentic process centered on a model-harness system. While an ideal harness system should align with human design priors and accumulate reusable experience through empirical exploration to drive recursive self-improvement, existing paradigms remain static and fall short of this capability. In this paper, we present AutoDesign, a framework that aligns with human design priors, where a meta-harness optimizer guides a code agent to recursively improve harness based on rollout feedback. To instantiate and evaluate this framework, we focus on the academic paper-to-poster generation task and introduce PosterBench, comprising a 100-paper Main Track spanning five disciplines and PosterBench-mini, a shared 10-paper subset for controlled evaluation. On the PosterBench Main Track, AutoDesign achieves the highest score of 78.32, surpassing the closed-source commercial system Claude Design by 7.45 points. Across seven controlled code-agent-model configurations, integrating the learned DesignHarness consistently improves performance, increasing the average PosterBench Score from 54.99 to 67.39 (+12.4%). In a fully autonomous long-horizon loop, it executes 253 tool calls and 11 editing turns within 40 minutes for under $3, reaching average conference-poster quality in human evaluation. A system-blind human study further demonstrates that AutoDesign achieves the highest human preference among evaluated systems.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:59:57Z</published>
+    <arxiv:comment>Tech Report. Code at: https://github.com/Yaxin9Luo/AutoDesign</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Yaxin Luo</name>
+    </author>
+    <author>
+      <name>Haobin Jiang</name>
+    </author>
+    <author>
+      <name>Jialv Zou</name>
+    </author>
+    <author>
+      <name>Xu Huang</name>
+    </author>
+    <author>
+      <name>Wenhao Yan</name>
+    </author>
+    <author>
+      <name>Haodong Li</name>
+    </author>
+    <author>
+      <name>Zhengrong Yue</name>
+    </author>
+    <author>
+      <name>Jing Li</name>
+    </author>
+    <author>
+      <name>Xiaofu Chen</name>
+    </author>
+    <author>
+      <name>Xiaohan Zhao</name>
+    </author>
+    <author>
+      <name>Jiacheng Liu</name>
+    </author>
+    <author>
+      <name>Jiacheng Cui</name>
+    </author>
+    <author>
+      <name>Zhiqiang Shen</name>
+    </author>
+    <author>
+      <name>Xiaotong Li</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13559v1</id>
+    <title>Equi-dependence implying independence</title>
+    <updated>2026-08-13T17:59:55Z</updated>
+    <link href="https://arxiv.org/abs/2608.13559v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13559v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>It is shown that, if an event $A$ has the same conditional probability in each trial in an infinite sequence of Bernoulli trials, then $A$ is independent of each trial. More general results are actually established.</summary>
+    <category term="math.PR" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:59:55Z</published>
+    <arxiv:comment>5 pages. To appear in The American Mathematical Monthly</arxiv:comment>
+    <arxiv:primary_category term="math.PR"/>
+    <author>
+      <name>Iosif Pinelis</name>
+    </author>
+  </entry>
+</feed>

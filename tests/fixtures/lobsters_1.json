@@ -1,0 +1,57 @@
+[
+  {
+    "short_id": "lfmss9",
+    "created_at": "2026-08-15T00:08:35.442-05:00",
+    "title": "Firefox is now the last major browser that still supports uBlock Origin",
+    "url": "https://www.pcworld.com/article/3212428/firefox-is-now-the-last-major-browser-that-still-supports-ublock-origin.html",
+    "score": 106,
+    "flags": 0,
+    "comment_count": 33,
+    "description": "",
+    "description_plain": "",
+    "submitter_user": "tusharhero",
+    "user_is_author": false,
+    "tags": [
+      "browsers"
+    ],
+    "short_id_url": "https://lobste.rs/s/lfmss9",
+    "comments_url": "https://lobste.rs/s/lfmss9/firefox_is_now_last_major_browser_still"
+  },
+  {
+    "short_id": "w5rmwi",
+    "created_at": "2026-08-15T07:50:05.356-05:00",
+    "title": "Everything is about to “go dark”",
+    "url": "https://blog.cryptographyengineering.com/2026/08/14/everything-is-about-to-go-dark/",
+    "score": 21,
+    "flags": 0,
+    "comment_count": 4,
+    "description": "",
+    "description_plain": "",
+    "submitter_user": "untitaker",
+    "user_is_author": false,
+    "tags": [
+      "security",
+      "vibecoding"
+    ],
+    "short_id_url": "https://lobste.rs/s/w5rmwi",
+    "comments_url": "https://lobste.rs/s/w5rmwi/everything_is_about_go_dark"
+  },
+  {
+    "short_id": "fooyux",
+    "created_at": "2026-08-15T08:29:59.029-05:00",
+    "title": "Why I remain a skeptic",
+    "url": "https://blog.jsbarretto.com/post/i-remain-a-skeptic",
+    "score": 11,
+    "flags": 1,
+    "comment_count": 4,
+    "description": "",
+    "description_plain": "",
+    "submitter_user": "jbauer",
+    "user_is_author": false,
+    "tags": [
+      "vibecoding"
+    ],
+    "short_id_url": "https://lobste.rs/s/fooyux",
+    "comments_url": "https://lobste.rs/s/fooyux/why_i_remain_skeptic"
+  }
+]

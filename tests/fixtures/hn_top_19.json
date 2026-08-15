@@ -1,0 +1,15 @@
+{
+  "by": "uecker",
+  "descendants": 34,
+  "id": 49308685,
+  "kids": [
+    49309818,
+    49309524,
+    49309757
+  ],
+  "score": 66,
+  "time": 1786780782,
+  "title": "Using GCC's Nested Functions with Wide Pointers and No Trampolines II",
+  "type": "story",
+  "url": "https://uecker.codeberg.page/2026-07-14.html"
+}
