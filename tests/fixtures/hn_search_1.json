@@ -1,0 +1,167 @@
+{
+  "exhaustive": {
+    "nbHits": false,
+    "typo": false
+  },
+  "exhaustiveNbHits": false,
+  "exhaustiveTypo": false,
+  "hits": [
+    {
+      "_highlightResult": {
+        "author": {
+          "matchLevel": "none",
+          "matchedWords": [],
+          "value": "tosh"
+        },
+        "title": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "Claude Code uses Bun written in <em>Rust</em> now"
+        },
+        "url": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-<em>rust</em>/"
+        }
+      },
+      "_tags": [
+        "story",
+        "author_tosh",
+        "story_48966569"
+      ],
+      "author": "tosh",
+      "children": [
+        48966727,
+        48966731,
+        48966784
+      ],
+      "created_at": "2026-07-19T10:03:23Z",
+      "created_at_i": 1784455403,
+      "num_comments": 853,
+      "objectID": "48966569",
+      "points": 608,
+      "story_id": 48966569,
+      "title": "Claude Code uses Bun written in Rust now",
+      "updated_at": "2026-08-12T06:24:13Z",
+      "url": "https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-rust/"
+    },
+    {
+      "_highlightResult": {
+        "author": {
+          "matchLevel": "none",
+          "matchedWords": [],
+          "value": "tomlockwood"
+        },
+        "title": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "How is the Bun rewrite in <em>Rust</em> going?"
+        },
+        "url": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "https://lockwood.dev/ai/2026/07/27/how-is-the-bun-rewrite-in-<em>rust</em>-going.html"
+        }
+      },
+      "_tags": [
+        "story",
+        "author_tomlockwood",
+        "story_49067854"
+      ],
+      "author": "tomlockwood",
+      "children": [
+        49068218,
+        49068234,
+        49068255
+      ],
+      "created_at": "2026-07-27T11:12:26Z",
+      "created_at_i": 1785150746,
+      "num_comments": 385,
+      "objectID": "49067854",
+      "points": 496,
+      "story_id": 49067854,
+      "title": "How is the Bun rewrite in Rust going?",
+      "updated_at": "2026-08-13T22:17:49Z",
+      "url": "https://lockwood.dev/ai/2026/07/27/how-is-the-bun-rewrite-in-rust-going.html"
+    },
+    {
+      "_highlightResult": {
+        "author": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "<em>rust</em>desk"
+        },
+        "title": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "<em>Rust</em>Desk now supports true unattended remote access on Wayland"
+        },
+        "url": {
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "https://<em>rust</em>desk.com/blog/unattended-remote-access-wayland/"
+        }
+      },
+      "_tags": [
+        "story",
+        "author_rustdesk",
+        "story_49300759"
+      ],
+      "author": "rustdesk",
+      "children": [
+        49301261,
+        49301284,
+        49301321
+      ],
+      "created_at": "2026-08-14T16:12:52Z",
+      "created_at_i": 1786723972,
+      "num_comments": 139,
+      "objectID": "49300759",
+      "points": 329,
+      "story_id": 49300759,
+      "title": "RustDesk now supports true unattended remote access on Wayland",
+      "updated_at": "2026-08-15T17:28:56Z",
+      "url": "https://rustdesk.com/blog/unattended-remote-access-wayland/"
+    }
+  ],
+  "hitsPerPage": 3,
+  "nbHits": 13630,
+  "nbPages": 334,
+  "page": 0,
+  "params": "query=rust&hitsPerPage=3&numericFilters=created_at_i%3E1784223095&advancedSyntax=true&analyticsTags=backend",
+  "processingTimeMS": 4,
+  "processingTimingsMS": {
+    "_request": {
+      "roundTrip": 17
+    },
+    "fetch": {
+      "query": 1,
+      "scanning": 2,
+      "total": 4
+    },
+    "total": 5
+  },
+  "query": "rust",
+  "serverTimeMS": 5
+}

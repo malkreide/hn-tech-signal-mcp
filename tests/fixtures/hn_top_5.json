@@ -1,0 +1,30 @@
+{
+  "by": "tosh",
+  "descendants": 73,
+  "id": 49309549,
+  "kids": [
+    49309929,
+    49311399,
+    49310605,
+    49310919,
+    49309982,
+    49311962,
+    49310225,
+    49310020,
+    49309979,
+    49309995,
+    49311443,
+    49311175,
+    49310750,
+    49310011,
+    49310563,
+    49311338,
+    49310160,
+    49310211
+  ],
+  "score": 255,
+  "time": 1786791602,
+  "title": "Auto-research with codex: How I achieved a 232x Faster Kernel",
+  "type": "story",
+  "url": "https://sankalp.bearblog.dev/autoresearch/"
+}

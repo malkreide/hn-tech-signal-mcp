@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Recorded fixtures instead of hand-written success responses.**
+  `tests/fixtures/` now holds 46 real responses, recorded with
+  `scripts/record_fixtures.py` at the seam where the server receives them — an
+  httpx response hook on the shared client from `server._get_client()`, so the
+  recording carries the same User-Agent, timeout and pool limits as production.
+  Origin, key, selection rule, size and SHA-256 are listed per file in
+  `tests/fixtures/PROVENANCE.md`; loaded through `tests/fixture_data.py`, driven
+  in `tests/test_recorded_fixtures.py` (67 new tests, coverage 80% → 88%).
+
+  One recording per **query**, not per endpoint: `hn_top_stories` fetches an ID
+  list and then each story on its own, `hn_discussion` walks the comment tree,
+  `tech_signal_digest` fans out over every source at once with `asyncio.gather`.
+  Replay therefore dispatches by request and never by order — an order-based
+  dispatcher would be right only by accident here.
+
+  The hand-written respx stubs in `tests/test_server.py` stay: they cover the
+  error paths — timeout, 5xx, empty result list — which cannot be recorded on
+  demand and are fine as inventions.
+
+  Two things this surfaced, both recorded in `CLAUDE.md`: `hn_search` writes a
+  live `int(time.time())` into its URL, so a recording's key changes every
+  second (the tests stop the clock at the recording moment and derive it back
+  out of the key); and the recorder folds identical requests together, so
+  `hn_discussion_1.json` is already a comment — the story sits under its
+  `hn_top` name.
+
+- **`ruff check` / `ruff format --check` now also cover `scripts`.** The
+  directory did not exist before the recorder; an unchecked directory only
+  becomes visible once something is in it.
+
+### Known gap
+
+- **`github_trending_ai` has no recorded response.**
+  `api.github.com/search/repositories` answers HTTP 403 from the recording
+  environment — `sessions are bound to their configured repositories`, which is
+  that environment's egress proxy and not GitHub. Recording an error response as
+  a fixture would pass it off as what the source normally says, so the path
+  keeps its hand-written stubs. The reason is stated as `NICHT_VON_HIER` in the
+  recorder and held in place by
+  `test_die_gesperrte_quelle_steht_begruendet_im_recorder`;
+  `test_der_digest_haelt_den_ausfall_einer_quelle_aus` checks that the digest
+  reports the source as degraded and still delivers the other three. With a
+  `GITHUB_TOKEN` outside that environment the recording can be added.
+
 ### Fixed
 
 - **`tech_signal_digest` was broken for every caller, and had been for a

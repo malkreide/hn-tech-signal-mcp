@@ -53,10 +53,13 @@ und damit auch keine Abweichung. Lokal vor dem Push:
 **Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13):
 
 ```bash
-ruff check src tests
-ruff format --check src tests
+ruff check src tests scripts
+ruff format --check src tests scripts
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
 ```
+
+`scripts` steht seit dem Fixture-Recorder mit im Gate. Vorher lag dort nichts;
+ein ungeprüftes Verzeichnis fällt erst auf, wenn etwas drin steht.
 
 **Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die 11
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
@@ -68,9 +71,40 @@ Dispatch auf einem Feature-Branch sagt nichts über `main`.
 `ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
-**Befund — keine aufgezeichneten Antworten:** die respx-Mocks in
-`tests/test_server.py` sind handgeschrieben, ohne Aufnahmedatum. Das
-verletzt die Fixture-Regel aus Teil 1 für alle vier Endpunkte.
+**Fixtures: aufgezeichnet.** `tests/fixtures/` hält 46 echte Antworten;
+Herkunft, Schlüssel, Auswahlregel und SHA-256 stehen je Datei in
+`tests/fixtures/PROVENANCE.md` — Portfolio-Konvention, gleich wie in
+`swisstopo-mcp` und `swiss-environment-mcp`. Neu aufzeichnen mit
+`PYTHONPATH=src python scripts/record_fixtures.py`, geladen wird über
+`tests/fixture_data.py`. Die respx-Stubs in `tests/test_server.py` bleiben für
+die Fehlerpfade — Timeout, 5xx, leere Trefferliste —, die sich nicht auf Zuruf
+aufzeichnen lassen.
+
+Eine Aufzeichnung je **Abfrage**, nicht je Endpunkt: `hn_top_stories` holt erst
+eine ID-Liste und dann jede Story einzeln, `hn_discussion` steigt den
+Kommentarbaum hinab, `tech_signal_digest` fächert mit `asyncio.gather` über alle
+Quellen zugleich auf. Zugeordnet wird deshalb nach der Anfrage und nie nach der
+Reihenfolge.
+
+Zwei Stolperstellen, die beim Aufzeichnen auffielen:
+
+- `hn_search` schreibt `int(time.time()) - days_back * 86400` in die URL. Der
+  Schlüssel einer Aufzeichnung ändert sich damit **jede Sekunde**; die Tests
+  halten die Uhr auf dem Aufnahmezeitpunkt an und rechnen ihn aus dem
+  Schlüssel zurück, statt eine Zahl einzutragen.
+- Der Recorder fasst gleiche Anfragen zusammen. Die Story der Diskussion lag
+  schon unter ihrem `hn_top`-Namen im Ordner — `hn_discussion_1.json` ist
+  bereits ein Kommentar. Wer die Story sucht, sucht nach `type == "story"` mit
+  aufgezeichneten `kids`, nicht nach dem Dateinamen.
+
+**Befund — eine Quelle fehlt:** `api.github.com/search/repositories` antwortet
+aus der Aufnahmeumgebung mit HTTP 403 (`sessions are bound to their configured
+repositories`) — das ist deren Egress-Proxy, nicht GitHub. `github_trending_ai`
+bleibt deshalb bei handgeschriebenen Stubs; die Begründung steht als
+`NICHT_VON_HIER` im Recorder und wird von
+`test_die_gesperrte_quelle_steht_begruendet_im_recorder` festgehalten. Mit
+eigenem `GITHUB_TOKEN` ausserhalb dieser Umgebung lässt sich die Antwort
+nachziehen.
 
 Alles Weitere (Tool-Übersicht, Setup, Beispiele) steht in `README.md`,
 `EXAMPLES.md` und `audits/`.

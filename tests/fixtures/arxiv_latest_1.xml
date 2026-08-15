@@ -1,0 +1,80 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
+  <id>https://arxiv.org/api/YfLIHsO+YkX2zCxmQu5HqUciM4Q</id>
+  <title>arXiv Query: search_query=cat:cs.LG&amp;id_list=&amp;start=0&amp;max_results=3</title>
+  <updated>2026-08-15T16:43:00Z</updated>
+  <link href="https://arxiv.org/api/query?search_query=cat:cs.LG&amp;start=0&amp;max_results=3&amp;id_list=" type="application/atom+xml"/>
+  <opensearch:itemsPerPage>3</opensearch:itemsPerPage>
+  <opensearch:totalResults>281296</opensearch:totalResults>
+  <opensearch:startIndex>0</opensearch:startIndex>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13554v1</id>
+    <title>Defensive Boosting for Online Probabilistic Forecasting</title>
+    <updated>2026-08-13T17:59:35Z</updated>
+    <link href="https://arxiv.org/abs/2608.13554v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13554v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>We study online probabilistic forecasting of binary outcomes chosen by an adaptive adversary. Given an online learning algorithm for a weak hypothesis class $H$, we would like to efficiently obtain two incomparable guarantees that existing online boosting techniques provide separately. Online gradient boosting competes in Brier score with the best predictor induced by the span of $H$ on every sequence, but promises nothing when the span does not contain an accurate predictor. Online weak-to-strong boosting drives classification error to zero under a weak-learning condition, but promises little when that condition fails.
+  We give a simple defensive forecasting algorithm, the Defensive Booster, that obtains both guarantees. On every adaptive sequence, its Brier score is competitive with the best prediction induced by the span of $H$ at the same rate as online gradient boosting; simultaneously, whenever the realized transcript satisfies the smooth weak-learning condition, its Brier score and randomized classification error satisfy the same rate guarantee as online classification boosting. This is achieved by operationalizing the "dual view" of boosting: When the algorithm's randomized classification error is persistently high, its mistake weights form a smooth reweighting on which every weak hypothesis has low edge, yielding an ex-post hard-core certificate that the weak-learning condition fails. We also develop a strongly adaptive variant, which satisfies both guarantees on every time interval. The Defensive Booster is very efficient: it accesses just one weak-class learner, whereas the prior online boosting methods we compare against maintain large weak-learner ensembles. Experiments on synthetic and real data streams demonstrate its strong predictive performance (sometimes substantially improving over all prior baselines) coupled with orders-of-magnitude faster runtime.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CC" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.DS" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:59:35Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Georgy Noarov</name>
+    </author>
+    <author>
+      <name>Aaron Roth</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13549v1</id>
+    <title>Exponential Convex Calibration Dimension for the Multi-Label Jaccard Measure</title>
+    <updated>2026-08-13T17:59:17Z</updated>
+    <link href="https://arxiv.org/abs/2608.13549v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13549v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>The per-instance Jaccard score, or intersection over union (IoU), is standard in multi-label classification and binary segmentation. With $s$ labels, its loss matrix has $2^s$ outcomes and reports. Under the convention $\mathrm{Jac}(\varnothing,\varnothing)=1$, we prove that the Jaccard score, shifted-loss, and ordinary loss matrices are nonsingular and that the loss columns have affine dimension $2^s-1$. The proof combines a finite MinHash Gram representation with Boolean Möbius inversion. For exact calibration, we prove $2^{s-1} \leq \mathrm{CCdim}(L^{\mathrm{Jac}}) \leq 2^s-1$. The lower bound uses a factorially weighted distribution with $2^{s-1}+1$ supported outcomes and Bayes-optimal reports. Consequently, every exactly calibrated convex surrogate requires exponentially many prediction coordinates. We also give two polynomial-dimensional approximation guarantees with explicit regret transfers. A new $F_1$-to-Jaccard transfer turns an existing $(s^2+1)$-dimensional $F_1$ surrogate into a polynomial-time rule with asymptotic Jaccard regret at most $3-2\sqrt{2}$. For any $α&gt;0$ and $0&lt;ρ&lt;1$, a MinHash square-loss surrogate attains Jaccard-regret floor $α$ uniformly over arbitrary conditional label distributions. With probability at least $1-ρ$, the direct construction has dimension $O((s^2+s\log(1/ρ))/α^2)$, while a signed variant has dimension $O((s+\log(1/ρ))/α^2)$. Thus zero-regret calibration requires exponential dimension, whereas every fixed additive regret tolerance admits polynomial prediction dimension.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:59:17Z</published>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Mingyuan Zhang</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2608.13545v1</id>
+    <title>LittleLearner: Language Models Under Pedagogically Controlled Knowledge Exposure</title>
+    <updated>2026-08-13T17:56:12Z</updated>
+    <link href="https://arxiv.org/abs/2608.13545v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2608.13545v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Modern language models are trained on heterogeneous web-scale text corpora. Consequently, studying knowledge and skill acquisition is difficult, as prior exposure to related content is hard to characterize. To address this challenge, we introduce LITTLECURRICULUM, a curated 88B-token pretraining corpus tailored to U.S. elementary school material, explicitly excluding concepts, facts, and vocabulary taught above Grade 5. Training a 5B-parameter LLM from scratch on LITTLECURRICULUM yields LITTLELEARNER, a model with sufficient language competence for open-ended evaluation, yet with clear knowledge and capability boundaries mapped to interpretable curriculum guidelines. We release LITTLECURRICULUM and LITTLELEARNER as a developmentally restricted sandbox to study how models acquire, represent, and use data under a well-defined training scope. We illustrate the sandbox's utility in a first suite of experiments on injecting new knowledge through post-training and in-context learning. These methods let LITTLELEARNER better utilize existing knowledge, but do not raise out-of-scope capabilities. Our findings underscore the value of this controlled environment for future investigations.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-08-13T17:56:12Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Fanfei Li</name>
+    </author>
+    <author>
+      <name>Jana Zeller</name>
+    </author>
+    <author>
+      <name>Manuel Prada-Corral</name>
+    </author>
+    <author>
+      <name>Thaddäus Wiedemer</name>
+    </author>
+    <author>
+      <name>Prasanna Mayilvahanan</name>
+    </author>
+    <author>
+      <name>Ryan Cotterell</name>
+    </author>
+    <author>
+      <name>Wieland Brendel</name>
+    </author>
+  </entry>
+</feed>
