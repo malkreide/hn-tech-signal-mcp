@@ -82,6 +82,20 @@ ruff format --check src tests scripts
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
 ```
 
+Der `pytest`-Aufruf ist zugleich das Coverage-Gate: `--cov-fail-under=65`
+steht im Befehl, nicht in einer Konfigurationsdatei. Ein Lauf über eine
+einzelne Testdatei fällt daran, nicht am Test. Die ruff-Pfade stehen ohne
+Schrägstrich (`src tests scripts`) — dasselbe Ergebnis, aber beim Kopieren
+zwischen Repos nicht verwechseln.
+
+**Drei ist die ganze Liste — es gibt kein Versions-Sync-Gate.** `scripts/`
+enthält nur `record_fixtures.py`, ein `check_version_sync.py` fehlt, und kein
+Workflow ruft eines auf. Die Version ist `dynamic` und kommt aus
+`src/hn_tech_signal_mcp/__init__.py` (`0.4.1`); `server.json` trägt sie ein
+zweites Mal (`0.4.1`). Beide stimmen heute überein, gehalten wird das von
+nichts — und weil `pyproject.toml` die Zahl gar nicht nennt, fällt beim
+Anheben leicht die zweite Stelle unter den Tisch.
+
 `scripts` steht seit dem Fixture-Recorder mit im Gate. Vorher lag dort nichts;
 ein ungeprüftes Verzeichnis fällt erst auf, wenn etwas drin steht.
 
