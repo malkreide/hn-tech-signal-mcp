@@ -43,17 +43,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`github_trending_ai` has no recorded response.**
   `api.github.com/search/repositories` answers HTTP 403 from the recording
-  environment — `sessions are bound to their configured repositories`, which is
-  that environment's egress proxy and not GitHub. Recording an error response as
-  a fixture would pass it off as what the source normally says, so the path
-  keeps its hand-written stubs. The reason is stated as `NICHT_VON_HIER` in the
-  recorder and held in place by
-  `test_die_gesperrte_quelle_steht_begruendet_im_recorder`;
+  environment — `sessions are bound to their configured repositories`. What is
+  blocked is the **path**, not the host and not the authentication: the same 403
+  comes back with and without a token, carries no `Server` header and no
+  `x-github-request-id`, and its `documentation_url` points at
+  `docs.anthropic.com` — the request never reaches GitHub. A `GITHUB_TOKEN`
+  therefore changes nothing; what it takes is an environment without that path
+  restriction, since an account-wide search cannot be expressed as
+  `repos/{owner}/{repo}/…`. Recording an error response as a fixture would pass
+  it off as what the source normally says, so the path keeps its hand-written
+  stubs. The reason is stated as `NICHT_VON_HIER` in the recorder and held in
+  place by `test_die_gesperrte_quelle_steht_begruendet_im_recorder`;
   `test_der_digest_haelt_den_ausfall_einer_quelle_aus` checks that the digest
-  reports the source as degraded and still delivers the other three. With a
-  `GITHUB_TOKEN` outside that environment the recording can be added.
+  reports the source as degraded and still delivers the other three.
 
 ### Fixed
+
+- **The recorder no longer carried the blocked call at all, so an environment
+  with access would not have recorded it either.** `github_trending_ai` had been
+  dropped from `PLAN` along with its recording — the gap stayed documented while
+  the thing that would close it was gone, and `NICHT_VON_HIER`'s promise that
+  "the same run records it there without further ado" was true of no run at all.
+  The call is back in the plan, and
+  `test_der_recorder_faehrt_die_gesperrte_quelle_trotzdem_an` holds it there;
+  `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet` catches the
+  next call that ends up without a recording and without a reason.
+
+  Putting it back needed the skip that was missing: the tool reports a rejected
+  request as an ordinary error string, which the recorder read as a reason to
+  retry — four attempts, 2 + 4 + 8 seconds of backoff, and then a `raise` that
+  took the rest of the plan with it. A response carrying the `GESPERRT`
+  signature, with nothing usable recorded alongside it, now raises
+  `PfadGesperrtError`; the run skips that one call, prints the documented reason
+  and carries on. The distinction is narrow on purpose — a 403 *without* that
+  signature still goes through the full backoff, because a source that closes
+  once must not end up permanently unrecorded.
+
+  The backoff sleep now hangs on the module alias `_sleep`. Patching
+  `asyncio.sleep` itself reaches into the foreign module and defuses the
+  mechanism process-wide, so a test doing that could not refute the assurance it
+  claims to check. With the alias it can: removing the skip makes the run really
+  wait, and the suite goes from 1.5 s to 15 s.
 
 - **`tech_signal_digest` was broken for every caller, and had been for a
   while.** It asked GitHub for
