@@ -45,10 +45,17 @@ Ein Codex-Review auf einem PR wird beantwortet oder behoben, nie ignoriert.
 
 ## Teil 2 — Dieses Repo
 
-**ruff:** gepinnt auf `0.16.1`, nur in `.github/workflows/ci.yml:31`.
+**ruff:** gepinnt auf `0.16.1`, nur im `dev`-Extra von `pyproject.toml`.
 Eine `.pre-commit-config.yaml` existiert nicht — es gibt keinen zweiten Pin
-und damit auch keine Abweichung. Lokal vor dem Push:
-`uv pip install "ruff==0.16.1"`.
+und damit auch keine Abweichung. Lokal vor dem Push genügt
+`uv pip install --system -e ".[dev]"`; ein separates ruff nachzuinstallieren
+ist nicht mehr nötig.
+
+Vorher stand der Pin in einer `uv pip install`-Zeile der CI, zusammen mit den
+Test-Abhängigkeiten. Ein `dev`-Extra gab es nicht, weshalb der Install ein
+`|| uv pip install -e .` als Fallback trug — der wich still auf eine
+unvollständige Umgebung aus und liess den Fehler erst einen Schritt später
+auftauchen, als «ruff not found» statt als «Extra fehlt». Beides ist weg.
 
 **Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13):
 
