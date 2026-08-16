@@ -217,9 +217,14 @@ def test_der_recorder_faehrt_dieselben_aufrufe():
     Laedt `scripts/record_fixtures.py` als Modul — `main()` wird nicht gerufen,
     es geht keine Anfrage raus. Die Diskussion steht in beiden, ihre Story-ID
     kommt in beiden zur Laufzeit dazu.
+
+    Zwei Eintraege stehen nur im Plan: `hn_discussion`, weil seine Story-ID erst
+    zur Laufzeit dazukommt, und `github`, weil es aus dieser Umgebung keine
+    Aufzeichnung gibt. Dass der zweite nicht bloss uebrig ist, prueft
+    `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet`.
     """
     im_plan = {a.name for a in recorder().PLAN}
-    assert im_plan == set(WERKZEUGE) | {"hn_discussion"}, (
+    assert im_plan == set(WERKZEUGE) | {"hn_discussion", "github"}, (
         "Recorder und Testtabelle nennen verschiedene Aufrufe"
     )
 
@@ -234,6 +239,47 @@ def test_die_gesperrte_quelle_steht_begruendet_im_recorder():
     luecken = recorder().NICHT_VON_HIER
     assert "github_trending_ai" in luecken, "die Luecke ist nicht mehr begruendet"
     assert "403" in luecken["github_trending_ai"]
+
+
+def test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet():
+    """Die Gegenrichtung zur Plan-Tabelle: kein Eintrag darf stumm leer bleiben.
+
+    Ein Aufruf, der im Plan steht und trotzdem nichts im Ordner hat, ist
+    entweder begruendet oder ein Versehen — und von aussen sind die beiden nicht
+    zu unterscheiden. Diese Zusicherung faellt, sobald ein *weiterer* Aufruf
+    ohne Aufzeichnung dazukommt, ohne dass jemand `NICHT_VON_HIER` ergaenzt.
+    """
+    modul = recorder()
+    aufgezeichnet = {n.rsplit("_", 1)[0] for n in recorded_names() if n != "PROVENANCE.md"}
+    ohne = {a.werkzeug for a in modul.PLAN if a.name not in aufgezeichnet}
+    assert ohne == set(modul.NICHT_VON_HIER), (
+        f"ohne Aufzeichnung: {sorted(ohne)}, begruendet: {sorted(modul.NICHT_VON_HIER)}"
+    )
+
+
+def test_der_recorder_faehrt_die_gesperrte_quelle_trotzdem_an():
+    """Sonst nuetzt eine Umgebung ohne die Sperre gar nichts.
+
+    Die Begruendung in `NICHT_VON_HIER` sagt zu, dass «derselbe Lauf sie dort
+    ohne Zutun mit aufzeichnet». Das gilt nur, solange der Aufruf im Plan steht.
+    Er war schon einmal ganz herausgenommen — dokumentiert blieb die Luecke,
+    aufgezeichnet haette sie auch mit Zugriff niemand.
+    """
+    modul = recorder()
+    im_plan = {a.werkzeug for a in modul.PLAN}
+    fehlend = sorted(set(modul.NICHT_VON_HIER) - im_plan)
+    assert not fehlend, f"als gesperrt begruendet, aber gar nicht im Plan: {fehlend}"
+
+
+def test_die_signatur_der_sperre_passt_zur_abgewiesenen_antwort():
+    """Die Konstante muss die Antwort treffen, an der sie greifen soll.
+
+    `GESPERRT` ist der Text, an dem der Recorder eine von der Umgebung — nicht
+    von GitHub — abgewiesene Anfrage erkennt. Trifft er nicht mehr, greift die
+    Ausnahme nicht, und der Lauf faellt wieder in vier Versuche mit Backoff und
+    reisst danach alles Uebrige mit.
+    """
+    assert recorder().GESPERRT in GITHUB_403["message"]
 
 
 def test_der_nachweis_meldet_was_gekuerzt_wurde():
@@ -376,6 +422,64 @@ async def test_der_digest_haelt_den_ausfall_einer_quelle_aus(quelle):
         assert daten["sources"][quellname]["count"] > 0, (
             f"{quellname} wurde vom GitHub-Ausfall mitgerissen"
         )
+
+
+@pytest.mark.asyncio
+async def test_ein_gesperrter_pfad_wird_uebersprungen_statt_den_lauf_abzubrechen(monkeypatch):
+    """Der Recorder darf an einer Umgebungssperre nicht den ganzen Lauf verlieren.
+
+    Das Werkzeug meldet die abgewiesene Anfrage als gewoehnlichen Fehler, und
+    der sah aus wie ein Retry-Grund: vier Versuche, dazwischen 2 + 4 + 8
+    Sekunden Backoff, danach ein `raise`, der auch die noch ausstehenden
+    Aufrufe mitnahm. Geprueft wird beides — die eigene Ausnahme *und* dass
+    davor nicht gewartet wurde.
+
+    Der Schlaf haengt am Modul-Alias `_sleep`. `asyncio.sleep` selbst zu patchen
+    entschaerfte die Mechanik im ganzen Prozess und koennte diese Zusicherung
+    nicht widerlegen.
+    """
+    modul = recorder()
+    geschlafen: list[float] = []
+
+    async def _kein_schlaf(sekunden: float) -> None:
+        geschlafen.append(sekunden)
+
+    monkeypatch.setattr(modul, "_sleep", _kein_schlaf)
+    aufruf = next(a for a in modul.PLAN if a.werkzeug == "github_trending_ai")
+
+    with respx.mock:
+        respx.route().mock(return_value=httpx.Response(403, json=GITHUB_403))
+        with pytest.raises(modul.PfadGesperrtError):
+            await modul._fahre(aufruf, server._get_client())
+
+    assert not geschlafen, f"vor dem Ueberspringen {len(geschlafen)}x gewartet: {geschlafen}"
+
+
+@pytest.mark.asyncio
+async def test_ein_gewoehnlicher_ausfall_wird_weiter_wiederholt(monkeypatch):
+    """Die Gegenprobe zur Sperre: nicht jeder Fehler ist einer.
+
+    Waere die Ausnahme zu weit gefasst, verlore der Recorder seinen Retry — und
+    eine Quelle, die einmal zumacht, waere dauerhaft ohne Aufzeichnung. Ein 403
+    **ohne** die Signatur der Umgebung ist ein Fall fuer den Backoff, nicht fuer
+    das Ueberspringen.
+    """
+    modul = recorder()
+    geschlafen: list[float] = []
+
+    async def _kein_schlaf(sekunden: float) -> None:
+        geschlafen.append(sekunden)
+
+    monkeypatch.setattr(modul, "_sleep", _kein_schlaf)
+    aufruf = next(a for a in modul.PLAN if a.werkzeug == "github_trending_ai")
+
+    with respx.mock:
+        respx.route().mock(return_value=httpx.Response(403, json={"message": "rate limit"}))
+        with pytest.raises(RuntimeError) as fehler:
+            await modul._fahre(aufruf, server._get_client())
+
+    assert not isinstance(fehler.value, modul.PfadGesperrtError), fehler.value
+    assert len(geschlafen) == modul.VERSUCHE - 1, f"nur {len(geschlafen)} Wartezeiten"
 
 
 @pytest.mark.asyncio

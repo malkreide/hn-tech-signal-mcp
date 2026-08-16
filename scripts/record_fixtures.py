@@ -29,6 +29,11 @@ der Ordner und der Nachweis bleibt zurueck.
 `GITHUB_TOKEN` wird, wenn gesetzt, vom Server als `Authorization`-Header
 mitgeschickt. Aufgezeichnet wird nur die *Antwort*; der Header steht in keiner
 Datei und in keinem Schluessel.
+
+Weist die Umgebung einen Pfad ab, bevor die Quelle ihn sieht (siehe `GESPERRT`),
+wird dieser eine Aufruf uebersprungen und der Grund gemeldet — der Lauf bricht
+nicht ab. So bleibt der Aufruf im Plan stehen, und eine Umgebung ohne die Sperre
+zeichnet ihn ohne Zutun mit auf.
 """
 
 from __future__ import annotations
@@ -53,6 +58,11 @@ from hn_tech_signal_mcp import server  # noqa: E402
 FIXTURES = WURZEL / "tests" / "fixtures"
 
 VERSUCHE = 4
+
+# Der Backoff-Schlaf unter eigenem Namen. Ein Test, der `asyncio.sleep` selbst
+# patcht, greift ins fremde Modul und entschaerft die Mechanik im ganzen
+# Prozess; ueber den Alias trifft er genau diese Schleife.
+_sleep = asyncio.sleep
 
 # Wie viele Eintraege einer Trefferliste bleiben. Die Form einer Zeile belegen
 # drei genauso gut wie hundert; die Zahl steht je Datei im Nachweis.
@@ -115,6 +125,13 @@ PLAN: list[Aufruf] = [
     ),
     Aufruf("lobsters", "lobsters_hot", "LobstersHotInput", {"limit": 3}),
     Aufruf(
+        "github",
+        "github_trending_ai",
+        "GithubTrendingAiInput",
+        {"topic": "llm", "limit": 3, "min_stars": 100},
+        notiz="Steht im Plan, damit eine Umgebung ohne Pfad-Sperre ihn ohne Zutun mitnimmt.",
+    ),
+    Aufruf(
         "digest",
         "tech_signal_digest",
         "TechSignalDigestInput",
@@ -125,18 +142,28 @@ PLAN: list[Aufruf] = [
 ]
 
 
-# Was hier nicht aufgezeichnet werden kann, und warum. Die Begruendung gehoert
-# in den Code und nicht bloss in eine Commit-Nachricht: sonst liest der
-# naechste Blick den fehlenden Eintrag als Versehen.
+#: Die Signatur, an der eine gesperrte Antwort erkennbar ist. Sie stammt nicht
+#: von GitHub: der Rumpf traegt keinen `Server`-Header und keine
+#: `x-github-request-id`, und die `documentation_url` zeigt auf
+#: docs.anthropic.com. Die Anfrage hat GitHub also nie erreicht.
+GESPERRT = "sessions are bound to their configured repositories"
+
+# Was sich aus mancher Umgebung nicht aufzeichnen laesst, und warum. Die
+# Begruendung gehoert in den Code und nicht bloss in eine Commit-Nachricht:
+# sonst liest der naechste Blick den fehlenden Eintrag als Versehen.
 NICHT_VON_HIER = {
     "github_trending_ai": (
-        "api.github.com/search/repositories antwortet aus dieser Umgebung mit "
-        "HTTP 403: «sessions are bound to their configured repositories». Das ist "
-        "der Egress-Proxy der Aufnahmeumgebung, nicht GitHub — mit einem eigenen "
-        "GITHUB_TOKEN ausserhalb davon laesst sich die Antwort aufzeichnen. Bis "
-        "dahin bleibt der Pfad bei handgeschriebenen Stubs, und "
-        "`test_der_digest_haelt_den_ausfall_einer_quelle_aus` prueft, dass der "
-        "Digest ohne diese Quelle weiterlaeuft statt umzufallen."
+        "api.github.com/search/repositories antwortet in manchen Umgebungen mit "
+        "HTTP 403 «sessions are bound to their configured repositories». Gesperrt "
+        "ist der *Pfad*, nicht der Host und nicht die Authentisierung: dieselbe "
+        "403 kommt mit und ohne Token, ohne `Server`-Header und ohne "
+        "`x-github-request-id` — die Anfrage erreicht GitHub nie. Ein eigenes "
+        "GITHUB_TOKEN aendert daran nichts; noetig ist eine Umgebung ohne diese "
+        "Pfad-Beschraenkung, denn eine account-weite Suche laesst sich nicht als "
+        "`repos/{owner}/{repo}/...` ausdruecken. Dort zeichnet derselbe Lauf sie "
+        "ohne Zutun mit auf. Bis dahin bleibt der Pfad bei handgeschriebenen "
+        "Stubs, und `test_der_digest_haelt_den_ausfall_einer_quelle_aus` prueft, "
+        "dass der Digest ohne diese Quelle weiterlaeuft statt umzufallen."
     ),
 }
 
@@ -182,11 +209,22 @@ class Antwort:
     bytes: int = 0
 
 
-def _hook_fuer(gesehen: list[Antwort]) -> Callable[[httpx.Response], Awaitable[None]]:
+class PfadGesperrtError(RuntimeError):
+    """Die Umgebung hat den Pfad abgewiesen, bevor die Quelle ihn sah.
+
+    Kein Retry-Grund und kein Abbruchgrund: der naechste Versuch bekommt
+    dieselbe Antwort, und die uebrigen Aufrufe des Plans haben damit nichts zu
+    tun. Der Lauf ueberspringt diesen einen Aufruf und sagt, warum.
+    """
+
+
+def _hook_fuer(
+    gesehen: list[Antwort], gesperrt: list[str]
+) -> Callable[[httpx.Response], Awaitable[None]]:
     """Baut den Response-Hook fuer einen Versuch.
 
-    Eigene Funktion, damit die Liste als Argument gebunden ist und nicht als
-    Schleifenvariable aus dem umgebenden Namensraum (ruff B023).
+    Eigene Funktion, damit die Listen als Argumente gebunden sind und nicht als
+    Schleifenvariablen aus dem umgebenden Namensraum (ruff B023).
     """
 
     async def hook(response: httpx.Response) -> None:
@@ -196,6 +234,8 @@ def _hook_fuer(gesehen: list[Antwort]) -> Callable[[httpx.Response], Awaitable[N
             # auszugeben, was die Quelle normalerweise sagt. Der Digest laeuft
             # ueber eine Quelle, die aus dieser Umgebung 403 gibt (siehe
             # NICHT_VON_HIER) — die Antwort gehoert nicht in den Ordner.
+            if GESPERRT in response.text:
+                gesperrt.append(str(response.request.url))
             print(
                 f"– nicht aufgezeichnet (HTTP {response.status_code}): {response.request.url}",
                 file=sys.stderr,
@@ -214,9 +254,10 @@ async def _fahre(a: Aufruf, client: httpx.AsyncClient) -> list[Antwort]:
 
     for versuch in range(VERSUCHE):
         if versuch:
-            await asyncio.sleep(2**versuch)
+            await _sleep(2**versuch)
         gesehen: list[Antwort] = []
-        hook = _hook_fuer(gesehen)
+        gesperrt: list[str] = []
+        hook = _hook_fuer(gesehen, gesperrt)
         client.event_hooks.setdefault("response", []).append(hook)
         try:
             ergebnis = await fn(modell)
@@ -226,6 +267,12 @@ async def _fahre(a: Aufruf, client: httpx.AsyncClient) -> list[Antwort]:
         finally:
             client.event_hooks["response"].remove(hook)
 
+        # Vor der Fehlerpruefung: das Werkzeug meldet eine abgewiesene Anfrage
+        # als gewoehnlichen Fehler, und der sieht aus wie ein Retry-Grund. Vier
+        # Versuche mit Backoff aendern daran nichts, und der `raise` am Ende
+        # riss den ganzen Lauf mit — samt der Aufrufe, die noch ausstanden.
+        if gesperrt and not gesehen:
+            raise PfadGesperrtError(f"{a.werkzeug}: {gesperrt[0]}")
         text = str(ergebnis)
         if "Error" in text[:200] or "Fehler" in text[:200]:
             letzter = RuntimeError(f"{a.werkzeug} meldet: {text[:200]}")
@@ -308,7 +355,17 @@ async def main() -> int:
         ]
         for a in aufrufe:
             print(f"… {a.werkzeug} ({a.name})", file=sys.stderr)
-            for antwort in await _fahre(a, client):
+            try:
+                antworten = await _fahre(a, client)
+            except PfadGesperrtError as e:
+                # Uebersprungen, nicht verschwiegen: der Grund steht im Code,
+                # und der Lauf sagt ihn noch einmal an der Stelle, an der er
+                # greift. Eine Umgebung ohne die Sperre nimmt den Aufruf ohne
+                # Zutun mit — deshalb steht er im Plan und nicht daneben.
+                print(f"– uebersprungen ({e})", file=sys.stderr)
+                print(f"  {NICHT_VON_HIER.get(a.werkzeug, 'ohne Begruendung')}", file=sys.stderr)
+                continue
+            for antwort in antworten:
                 if antwort.schluessel in nach_schluessel:
                     vorhanden = nach_schluessel[antwort.schluessel]
                     if a.werkzeug not in vorhanden.werkzeuge:

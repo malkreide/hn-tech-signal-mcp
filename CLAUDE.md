@@ -99,12 +99,26 @@ Zwei Stolperstellen, die beim Aufzeichnen auffielen:
 
 **Befund — eine Quelle fehlt:** `api.github.com/search/repositories` antwortet
 aus der Aufnahmeumgebung mit HTTP 403 (`sessions are bound to their configured
-repositories`) — das ist deren Egress-Proxy, nicht GitHub. `github_trending_ai`
-bleibt deshalb bei handgeschriebenen Stubs; die Begründung steht als
-`NICHT_VON_HIER` im Recorder und wird von
-`test_die_gesperrte_quelle_steht_begruendet_im_recorder` festgehalten. Mit
-eigenem `GITHUB_TOKEN` ausserhalb dieser Umgebung lässt sich die Antwort
-nachziehen.
+repositories`). Gemessen, nicht aus der Meldung geschlossen: dieselbe 403 kommt
+mit und ohne Token, ohne `Server`-Header, ohne `x-github-request-id` und mit
+`documentation_url` auf docs.anthropic.com — die Anfrage erreicht GitHub nie.
+Gesperrt ist der **Pfad**, nicht der Host und nicht die Authentisierung; ein
+eigenes `GITHUB_TOKEN` ändert daran nichts, nötig ist eine Umgebung ohne diese
+Beschränkung. `github_trending_ai` bleibt deshalb bei handgeschriebenen Stubs;
+die Begründung steht als `NICHT_VON_HIER` im Recorder und wird von
+`test_die_gesperrte_quelle_steht_begruendet_im_recorder` festgehalten.
+
+Der Aufruf steht trotzdem im `PLAN` — er war einmal herausgenommen, und damit
+war die Lücke zwar dokumentiert, aber selbst mit Zugriff nicht mehr zu
+schliessen: der Lauf hätte sie gar nicht angefahren. Eine dokumentierte Lücke
+ohne den Weg, sie zu füllen, ist keine Lücke mehr, sondern ein Loch mit
+Beschriftung. Ein von der Umgebung abgewiesener Pfad (`GESPERRT`) wird beim
+Aufzeichnen mit Begründung übersprungen statt wiederholt — das Werkzeug meldet
+ihn als gewöhnlichen Fehler, und der sah für den Recorder aus wie ein
+Retry-Grund: vier Versuche, 14 Sekunden Backoff, danach ein `raise`, der den
+ganzen restlichen Plan mitnahm. Eng gefasst: eine 403 **ohne** diese Signatur
+läuft weiter durch den Backoff, sonst wäre eine einmal schliessende Quelle
+dauerhaft ohne Aufzeichnung.
 
 Alles Weitere (Tool-Übersicht, Setup, Beispiele) steht in `README.md`,
 `EXAMPLES.md` und `audits/`.
