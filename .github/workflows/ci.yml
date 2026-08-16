@@ -45,3 +45,6 @@ jobs:
         # and GitHub tool bodies, which are still only exercised by the 'live'
         # marker that CI deselects. Raise again as those gain fixtures.
         run: PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
+
+      - name: Versions-Sync (pyproject ↔ server.json / README / src)
+        run: python scripts/check_version_sync.py
