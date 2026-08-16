@@ -24,11 +24,14 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
+      # Ein Install statt zwei. Das `||`-Fallback stammte daher, dass es kein
+      # dev-Extra gab; jetzt gibt es eins, und die Test-Abhaengigkeiten samt
+      # ruff-Pin stehen dort statt hier noch einmal aufgezaehlt. Ein Fallback,
+      # der still auf eine unvollstaendige Umgebung ausweicht, wuerde den
+      # Fehler erst im naechsten Schritt zeigen — und dann als "ruff not
+      # found" statt als "Extra fehlt".
       - name: Install dependencies
-        run: uv pip install --system -e ".[dev]" || uv pip install --system -e .
-
-      - name: Install test deps
-        run: uv pip install --system pytest pytest-asyncio pytest-cov respx "ruff==0.16.1"
+        run: uv pip install --system -e ".[dev]"
 
       - name: Lint (ruff check)
         run: ruff check src tests scripts
