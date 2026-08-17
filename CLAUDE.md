@@ -77,6 +77,7 @@ schlägt den Pin, ohne dass der Install etwas meldet.
 **Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13):
 
 ```bash
+python scripts/check_ruff_pin.py
 ruff check src tests scripts
 ruff format --check src tests scripts
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
