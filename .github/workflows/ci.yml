@@ -53,3 +53,9 @@ jobs:
 
       - name: Versions-Sync (pyproject ↔ server.json / README / src)
         run: python scripts/check_version_sync.py
+
+      # CLAUDE.md ist zweimal verrottet, ohne dass etwas rot wurde — beim
+      # zweiten Mal stand dort das Gegenteil der Wahrheit. Geprueft wird nur,
+      # was mechanisch belegbar ist; die Begruendung steht im Skript.
+      - name: CLAUDE.md gegen das Repo (Gates, ruff-Pin, Skripte, Live-Tests)
+        run: python scripts/check_claude_md.py

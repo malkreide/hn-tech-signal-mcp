@@ -98,6 +98,7 @@ ruff check src tests scripts
 ruff format --check src tests scripts
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
 python scripts/check_version_sync.py
+python scripts/check_claude_md.py
 ```
 
 Der `pytest`-Aufruf ist zugleich das Coverage-Gate: `--cov-fail-under=65`
@@ -106,11 +107,11 @@ einzelne Testdatei fällt daran, nicht am Test. Die ruff-Pfade stehen ohne
 Schrägstrich (`src tests scripts`) — dasselbe Ergebnis, aber beim Kopieren
 zwischen Repos nicht verwechseln.
 
-**Fünf Gates, und das Versions-Sync-Gate ist eines davon.** `scripts/` enthält
-`check_ruff_pin.py`, `check_version_sync.py` und `record_fixtures.py`. Die
-Version ist `dynamic` und kommt aus `src/hn_tech_signal_mcp/__init__.py`
-(`0.4.1`); `server.json` trägt sie zweimal (`version` und
-`packages[0].version`), beide READMEs je einmal im Badge. Weil
+**Das Versions-Sync-Gate gehört dazu.** `scripts/` enthält
+`check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py` und
+`record_fixtures.py`. Die Version ist `dynamic` und kommt aus
+`src/hn_tech_signal_mcp/__init__.py` (`0.4.1`); `server.json` trägt sie zweimal
+(`version` und `packages[0].version`), beide READMEs je einmal im Badge. Weil
 `pyproject.toml` die Zahl gar nicht nennt, fiel beim Anheben früher leicht eine
 der Stellen unter den Tisch — genau das hält jetzt `check_version_sync.py` fest,
 statt auf Sorgfalt zu setzen. Es prüft zusätzlich, dass in `src/` keine
@@ -127,6 +128,20 @@ der falschen Stelle.
 `scripts` steht seit dem Fixture-Recorder mit im Gate. Vorher lag dort nichts;
 ein ungeprüftes Verzeichnis fällt erst auf, wenn etwas drin steht.
 
+**Diese Datei wird selbst geprüft.** `scripts/check_claude_md.py` hält vier
+Angaben aus Teil 2 gegen ihre Quellen: den Gate-Block gegen die `run:`-Schritte
+aus `ci.yml`, den zitierten ruff-Pin gegen `pyproject.toml`, die erwähnten
+Skripte gegen `scripts/` (in beide Richtungen — ein unerwähntes Skript fällt
+genauso auf wie ein genanntes ohne Datei) und die Zahl der Live-Tests gegen die
+Testdateien. Jede dieser Angaben muss vorhanden sein: Wer sie herausnimmt,
+statt sie zu korrigieren, fällt ebenfalls, sonst wäre Löschen der bequemste Weg
+am Gate vorbei.
+
+Bewusst ungeprüft bleibt, was sich nur als Prosa fassen lässt — die Zahl der
+aufgezeichneten Antworten, die Beschreibung von `live-sources.yml`, jede
+Begründung. Ein Gate mit Fehlalarmen wird abgeschaltet und schützt danach gar
+nichts; lieber vier belegte Angaben als zwölf wacklige.
+
 **Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
 täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
@@ -135,10 +150,11 @@ wieder; ohne das sieht ein roter Zeitplan niemand, und ein Melder, der nie
 entwarnt, wird ignoriert. Beides nur auf dem Default-Branch: ein grüner
 Dispatch auf einem Feature-Branch sagt nichts über `main`.
 `ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab und meldet sie als
-«12 deselected». Zwölf Fälle, aber nur zehn Funktionen:
-`test_live_hn_extended_feeds` ist dreifach parametrisiert (`ask`, `show`,
-`job`). Wer die Funktionen zählt und die Differenz für einen Fehler hält, sucht
-umsonst — hier stand vorher «11», was auf beide Zählweisen nicht passt.
+«12 deselected»: 12 Fälle aus 10 Funktionen, denn `test_live_hn_extended_feeds`
+ist dreifach parametrisiert (`ask`, `show`, `job`). Wer die Funktionen zählt und
+die Differenz für einen Fehler hält, sucht umsonst — hier stand vorher «11», was
+auf keine der beiden Zählweisen passt. Beide Zahlen prüft
+`scripts/check_claude_md.py`.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
 **Fixtures: aufgezeichnet.** `tests/fixtures/` hält 46 echte Antworten;
