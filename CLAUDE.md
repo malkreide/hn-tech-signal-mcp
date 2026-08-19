@@ -23,6 +23,14 @@ Ein veralteter Klon erzeugt eine rote CI, deren Ursache nicht im Diff steht.
 Am 3.8.2026 zweimal passiert — beide Male fehlten genau die Commits, die
 das Gate einführten, an dem der Branch scheiterte.
 
+In *diesem* Repo läuft die Prüfung seit PR #46 automatisch: der SessionStart-Hook
+`.claude/hooks/session-start.sh` meldet den Rückstand beim Sessionstart und
+schweigt bei 0. Er ersetzt den Befehl oben nicht, sondern erinnert daran — er
+blockiert nie und schweigt deshalb auch, wenn Netz, Remote oder Default-Branch
+nicht zu ermitteln sind. In den übrigen Servern des Portfolios gibt es ihn noch
+nicht; dort bleibt es Handarbeit. Begründung und Zusicherungen:
+`.claude/hooks/README.md`.
+
 Gates lokal fahren, mit der GEPINNTEN ruff-Version aus der CI. Eine andere
 Version meldet Abweichungen, die niemand verursacht hat.
 
@@ -59,7 +67,7 @@ Ein Codex-Review auf einem PR wird beantwortet oder behoben, nie ignoriert.
 
 ## Teil 2 — Dieses Repo
 
-**ruff:** gepinnt auf `0.16.1`, nur im `dev`-Extra von `pyproject.toml`.
+**ruff:** gepinnt auf `0.16.3`, nur im `dev`-Extra von `pyproject.toml`.
 Eine `.pre-commit-config.yaml` existiert nicht — es gibt keinen zweiten Pin
 und damit auch keine Abweichung. Lokal vor dem Push genügt
 `uv pip install --system -e ".[dev]"`; ein separates ruff nachzuinstallieren
@@ -71,8 +79,16 @@ Test-Abhängigkeiten. Ein `dev`-Extra gab es nicht, weshalb der Install ein
 unvollständige Umgebung aus und liess den Fehler erst einen Schritt später
 auftauchen, als «ruff not found» statt als «Extra fehlt». Beides ist weg.
 
+Die Zahl hier wandert: Dependabot hebt den Pin an (zuletzt PR #45, 0.16.1 →
+0.16.3), und dieser Absatz zieht nicht von selbst nach. Im Zweifel gilt
+`pyproject.toml`, nicht diese Zeile.
+
 Vor dem Lauf `ruff --version` prüfen: ein älteres ruff früher im `PATH`
-schlägt den Pin, ohne dass der Install etwas meldet.
+schlägt den Pin, ohne dass der Install etwas meldet. `scripts/check_ruff_pin.py`
+sagt es einem sonst erst in der CI — es prüft beide Aufrufwege (`ruff` aus dem
+`PATH` und `python -m ruff`). Ein per `uv tool install` global abgelegtes ruff
+unter `~/.local/bin` gewinnt gegen das Extra; dann entweder jenes entfernen oder
+die Gates mit `python -m ruff` fahren.
 
 **Gates, wörtlich aus `ci.yml`** (Matrix: Python 3.11 / 3.12 / 3.13):
 
@@ -81,6 +97,7 @@ python scripts/check_ruff_pin.py
 ruff check src tests scripts
 ruff format --check src tests scripts
 PYTHONPATH=src pytest tests/ -m "not live" -v --cov=hn_tech_signal_mcp --cov-report=term-missing --cov-fail-under=65
+python scripts/check_version_sync.py
 ```
 
 Der `pytest`-Aufruf ist zugleich das Coverage-Gate: `--cov-fail-under=65`
@@ -89,25 +106,39 @@ einzelne Testdatei fällt daran, nicht am Test. Die ruff-Pfade stehen ohne
 Schrägstrich (`src tests scripts`) — dasselbe Ergebnis, aber beim Kopieren
 zwischen Repos nicht verwechseln.
 
-**Drei ist die ganze Liste — es gibt kein Versions-Sync-Gate.** `scripts/`
-enthält nur `record_fixtures.py`, ein `check_version_sync.py` fehlt, und kein
-Workflow ruft eines auf. Die Version ist `dynamic` und kommt aus
-`src/hn_tech_signal_mcp/__init__.py` (`0.4.1`); `server.json` trägt sie ein
-zweites Mal (`0.4.1`). Beide stimmen heute überein, gehalten wird das von
-nichts — und weil `pyproject.toml` die Zahl gar nicht nennt, fällt beim
-Anheben leicht die zweite Stelle unter den Tisch.
+**Fünf Gates, und das Versions-Sync-Gate ist eines davon.** `scripts/` enthält
+`check_ruff_pin.py`, `check_version_sync.py` und `record_fixtures.py`. Die
+Version ist `dynamic` und kommt aus `src/hn_tech_signal_mcp/__init__.py`
+(`0.4.1`); `server.json` trägt sie zweimal (`version` und
+`packages[0].version`), beide READMEs je einmal im Badge. Weil
+`pyproject.toml` die Zahl gar nicht nennt, fiel beim Anheben früher leicht eine
+der Stellen unter den Tisch — genau das hält jetzt `check_version_sync.py` fest,
+statt auf Sorgfalt zu setzen. Es prüft zusätzlich, dass in `src/` keine
+hartkodierte Version steht.
+
+An dieser Stelle stand bis zu dieser Änderung das Gegenteil: «Drei ist die
+ganze Liste — es gibt kein Versions-Sync-Gate», zusammen mit der Angabe,
+`scripts/` enthalte nur `record_fixtures.py`. Das war überholt, seit das Skript
+und sein CI-Schritt dazukamen. Eine Konventionsdatei, die eine Prüfung
+*bestreitet*, die es gibt, ist schlimmer als eine, die sie verschweigt: Wer eine
+Version anhebt, verlässt sich auf den Absatz und sucht das rote Gate zuerst an
+der falschen Stelle.
 
 `scripts` steht seit dem Fixture-Recorder mit im Gate. Vorher lag dort nichts;
 ein ungeprüftes Verzeichnis fällt erst auf, wenn etwas drin steht.
 
-**Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die 11
+**Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
 täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
 mit Label `live-drift` oder kommentiert das offene, ein grüner schliesst es
 wieder; ohne das sieht ein roter Zeitplan niemand, und ein Melder, der nie
 entwarnt, wird ignoriert. Beides nur auf dem Default-Branch: ein grüner
 Dispatch auf einem Feature-Branch sagt nichts über `main`.
-`ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab.
+`ci.yml` wählt Live-Tests weiterhin per `-m "not live"` ab und meldet sie als
+«12 deselected». Zwölf Fälle, aber nur zehn Funktionen:
+`test_live_hn_extended_feeds` ist dreifach parametrisiert (`ask`, `show`,
+`job`). Wer die Funktionen zählt und die Differenz für einen Fehler hält, sucht
+umsonst — hier stand vorher «11», was auf beide Zählweisen nicht passt.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
 **Fixtures: aufgezeichnet.** `tests/fixtures/` hält 46 echte Antworten;
