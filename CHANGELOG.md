@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Frischehinweise auf den auflistenden Methoden** (SEP-2549, Spec
+  `2026-07-28`): `ttlMs` 300000, `cacheScope` `public`. Das SDK setzt beides auf
+  «sofort veraltet, nie geteilt» — wer nichts übergibt, lässt jeden Client bei
+  jeder Verbindung neu auflisten. `resources/read` und `prompts/get` bleiben
+  ohne Hinweis: das wäre eine Zusicherung über den Inhalt statt über das
+  Verzeichnis.
+
+### Added
+
 - **Die Pruefsummen im Fixture-Nachweis waren Zierde.** `PROVENANCE.md` fuehrt
   je Datei einen SHA-256 — um genau einen Fall zu fangen: eine Aufzeichnung,
   die nach dem Lauf von Hand nachgebessert wurde. Eine korrigierte Antwort ist
