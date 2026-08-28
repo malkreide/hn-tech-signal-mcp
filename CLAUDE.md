@@ -232,7 +232,7 @@ wie der Code: Nichts ist rot, weil nichts geprüft wird, worauf es ankommt.
 
 ## Teil 2 — Dieses Repo
 
-**ruff:** gepinnt auf `0.16.3`, nur im `dev`-Extra von `pyproject.toml`.
+**ruff:** gepinnt auf `0.16.4`, nur im `dev`-Extra von `pyproject.toml`.
 Eine `.pre-commit-config.yaml` existiert nicht — es gibt keinen zweiten Pin
 und damit auch keine Abweichung. Lokal vor dem Push genügt
 `uv pip install --system -e ".[dev]"`; ein separates ruff nachzuinstallieren
@@ -244,9 +244,16 @@ Test-Abhängigkeiten. Ein `dev`-Extra gab es nicht, weshalb der Install ein
 unvollständige Umgebung aus und liess den Fehler erst einen Schritt später
 auftauchen, als «ruff not found» statt als «Extra fehlt». Beides ist weg.
 
-Die Zahl hier wandert: Dependabot hebt den Pin an (zuletzt PR #45, 0.16.1 →
-0.16.3), und dieser Absatz zieht nicht von selbst nach. Im Zweifel gilt
-`pyproject.toml`, nicht diese Zeile.
+Die Zahl hier wandert: Dependabot hebt den Pin an, und dieser Absatz zieht
+nicht von selbst nach. Im Zweifel gilt `pyproject.toml`, nicht diese Zeile.
+
+Genau das ist hier passiert, und zwar zweimal: Nach `0.16.1 → 0.16.3` (PR #45)
+stand die alte Zahl noch da, und nach dem Zug auf `0.16.4` wieder. Beim zweiten
+Mal war `scripts/check_claude_md.py` schon da und meldete es — der Absatz
+beschreibt seither eine Abweichung, die sein eigenes Gate bereits rot fährt.
+Ein vorhergesagter Fehler, den niemand behebt, ist kein Gate, sondern eine
+Fussnote: Wer den roten Haken als bekannt abtut, hat sich angewöhnt, ihn zu
+übersehen, und übersieht den nächsten mit.
 
 Vor dem Lauf `ruff --version` prüfen: ein älteres ruff früher im `PATH`
 schlägt den Pin, ohne dass der Install etwas meldet. `scripts/check_ruff_pin.py`
@@ -273,8 +280,8 @@ Schrägstrich (`src tests scripts`) — dasselbe Ergebnis, aber beim Kopieren
 zwischen Repos nicht verwechseln.
 
 **Das Versions-Sync-Gate gehört dazu.** `scripts/` enthält
-`check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py` und
-`record_fixtures.py`. Die Version ist `dynamic` und kommt aus
+`check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py`,
+`classify_live_run.py` und `record_fixtures.py`. Die Version ist `dynamic` und kommt aus
 `src/hn_tech_signal_mcp/__init__.py` (`0.4.1`); `server.json` trägt sie zweimal
 (`version` und `packages[0].version`), beide READMEs je einmal im Badge. Weil
 `pyproject.toml` die Zahl gar nicht nennt, fiel beim Anheben früher leicht eine
@@ -292,6 +299,26 @@ der falschen Stelle.
 
 `scripts` steht seit dem Fixture-Recorder mit im Gate. Vorher lag dort nichts;
 ein ungeprüftes Verzeichnis fällt erst auf, wenn etwas drin steht.
+
+**`classify_live_run.py` entscheidet, ob `live-sources.yml` ein Issue anfasst.**
+`if: failure()` und `if: success()` kennen zusammen zwei Antworten; ein
+Live-Lauf hat drei. Die dritte ist `unknown`: Die Suite ist nicht gelaufen — ein
+gescheitertes `uv pip install`, ein Timeout, eine umbenannte Marke — und über
+die Quellen sagt der Lauf dann nichts.
+
+Der teurere Fehler war die andere Richtung. Überspringt die Suite jeden Test,
+endet pytest mit `0`; das traf `success()`, und der Aufräumschritt schloss ein
+offenes Drift-Issue mit dem Satz «Die Quellen antworten wieder wie erwartet»,
+ohne dass eine einzige Quelle gefragt worden wäre. Ein Melder, der auf einen
+Nicht-Lauf hin entwarnt, ist schlimmer als keiner.
+
+Deshalb liest die Einordnung das JUnit-XML statt des Exit-Codes: Der Exit-Code
+sagt `0` für «alles grün» und für «alles übersprungen» dasselbe, das XML zählt
+Tests, Übersprungene, Fehlschläge und Fehler getrennt. `finding` öffnet oder
+kommentiert, `clear` schliesst, `unknown` lässt den Thread in Ruhe und macht den
+Job rot. Sie steht in `scripts/` und nicht in einem `run:`-Block, weil der
+einzige Teil des Workflows, der etwas behauptet, sonst an der einzigen Stelle
+läge, an der ihn niemand testen kann — `tests/test_classify_live_run.py`.
 
 **Diese Datei wird selbst geprüft.** `scripts/check_claude_md.py` hält vier
 Angaben aus Teil 2 gegen ihre Quellen: den Gate-Block gegen die `run:`-Schritte
