@@ -55,17 +55,47 @@ jobs:
       - name: Install test deps
         run: uv pip install --system pytest pytest-asyncio respx
 
+      # `continue-on-error`, damit die Einordnung in jedem Fall laeuft. Rot
+      # wird der Job weiter unten, aus dem eingeordneten Ergebnis.
       - name: Run live tests
+        id: suite
+        continue-on-error: true
         env:
           # Hebt das GitHub-Limit von 60 auf 5'000 req/h — der Server liest die
           # Variable selbst (siehe `server.py`). Das eingebaute Token reicht,
           # es muss kein Secret gesetzt werden.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: PYTHONPATH=src pytest tests/ -m live -v
+        run: |
+          set +e
+          PYTHONPATH=src pytest tests/ -m live -v \
+            --junitxml=live-report.xml 2>&1 | tee live-output.txt
+          echo "pytest_exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      # `if: failure()` und `if: success()` kennen zusammen zwei Antworten. Ein
+      # Live-Lauf hat drei, und die dritte zaehlt: Ein gescheitertes
+      # `uv pip install`, ein Timeout oder eine umbenannte Marke sind NICHT
+      # dasselbe wie eine Quelle, die ihr Schema geaendert hat.
+      #
+      # Der teurere Fehler stand im Schritt darunter: Ueberspringt die Suite
+      # jeden Test — kein Netz, eine nicht erfuellte Vorbedingung, ein
+      # erschoepftes Kontingent —, endet pytest mit 0. Das traf `success()`, und
+      # der Aufraeumschritt schloss ein offenes Drift-Issue mit dem Satz «Die
+      # Quellen antworten wieder wie erwartet», ohne dass eine einzige Quelle
+      # gefragt worden waere.
+      - name: Ergebnis einordnen
+        id: verdict
+        env:
+          PYTEST_EXIT: ${{ steps.suite.outputs.pytest_exit }}
+        run: |
+          args=(live-report.xml)
+          if [ -n "$PYTEST_EXIT" ]; then
+            args+=(--pytest-exit "$PYTEST_EXIT")
+          fi
+          python scripts/classify_live_run.py "${args[@]}"
 
       - name: Report a red run as an issue
         # Ein roter geplanter Lauf, den niemand sieht, ist so gut wie kein Lauf.
-        if: failure() && env.IS_DEFAULT_BRANCH == 'true'
+        if: steps.verdict.outputs.state == 'finding' && env.IS_DEFAULT_BRANCH == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -92,7 +122,7 @@ jobs:
         # Sonst bleibt das Issue nach der Erholung offen stehen und der nächste
         # echte Ausfall kommentiert nur noch an ein Ticket, das niemand mehr
         # liest — ein Melder, der nie entwarnt, wird ignoriert.
-        if: success() && env.IS_DEFAULT_BRANCH == 'true'
+        if: steps.verdict.outputs.state == 'clear' && env.IS_DEFAULT_BRANCH == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -110,3 +140,26 @@ jobs:
             gh issue comment "$number" --body "Die Quellen antworten wieder wie erwartet: $RUN_URL"
             gh issue close "$number" --reason completed
           done
+
+      # Erst hier wird der Job rot. `clear` ist gruen; `finding` und `unknown`
+      # sind beide rot, aber nur `finding` hat oben ein Issue erzeugt — der
+      # Unterschied steht im Log, nicht im Exit-Code. `unknown` ruehrt den
+      # Thread bewusst nicht an: weder oeffnen noch schliessen, weil der Lauf
+      # nichts ueber die Quellen festgestellt hat.
+      #
+      # Ohne Branch-Bedingung: Ein Dispatch auf einem Feature-Branch soll rot
+      # werden duerfen, er darf nur das Issue nicht anfassen — genau die
+      # Trennung, die `IS_DEFAULT_BRANCH` oben schon zieht.
+      #
+      # Ueber `env`, nicht ueber `${{ }}` im Skript: Der Grund kann eine
+      # Parser-Meldung ueber eine fremde Datei enthalten, und `${{ }}` setzt sie
+      # vor dem Start woertlich in die Shell ein.
+      - name: Ergebnis durchreichen
+        if: steps.verdict.outputs.state != 'clear'
+        env:
+          LIVE_STATE: ${{ steps.verdict.outputs.state }}
+          LIVE_REASON: ${{ steps.verdict.outputs.reason }}
+        run: |
+          echo "Live-Suite: $LIVE_STATE"
+          echo "$LIVE_REASON"
+          exit 1
