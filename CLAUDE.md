@@ -244,16 +244,21 @@ Test-Abhängigkeiten. Ein `dev`-Extra gab es nicht, weshalb der Install ein
 unvollständige Umgebung aus und liess den Fehler erst einen Schritt später
 auftauchen, als «ruff not found» statt als «Extra fehlt». Beides ist weg.
 
-Die Zahl hier wandert: Dependabot hebt den Pin an, und dieser Absatz zieht
-nicht von selbst nach. Im Zweifel gilt `pyproject.toml`, nicht diese Zeile.
+Die Zahl hier wandert: Dependabot hebt den Pin an. Im Zweifel gilt
+`pyproject.toml`, nicht diese Zeile.
 
-Genau das ist hier passiert, und zwar zweimal: Nach `0.16.1 → 0.16.3` (PR #45)
-stand die alte Zahl noch da, und nach dem Zug auf `0.16.4` wieder. Beim zweiten
-Mal war `scripts/check_claude_md.py` schon da und meldete es — der Absatz
-beschreibt seither eine Abweichung, die sein eigenes Gate bereits rot fährt.
+Zweimal ist genau daran etwas gerissen. Nach `0.16.1 → 0.16.3` (PR #45) stand
+die alte Zahl noch da; das Gate gab es damals noch nicht, und die Abweichung
+blieb still. Nach dem Zug auf `0.16.4` gab es das Gate — und der Default-Branch
+lag drei Tage rot (Läufe 127 und 128), weil niemand eine Prosazeile nachzog.
 Ein vorhergesagter Fehler, den niemand behebt, ist kein Gate, sondern eine
 Fussnote: Wer den roten Haken als bekannt abtut, hat sich angewöhnt, ihn zu
 übersehen, und übersieht den nächsten mit.
+
+Deshalb zieht der Nachzug jetzt von selbst: `python scripts/check_claude_md.py
+--fix` schreibt die Zahl nach, und auf Dependabot-PRs tut das
+`claude-md-nachziehen.yml` ungefragt. Was `--fix` kann und was bewusst nicht,
+steht weiter unten bei «Diese Datei wird selbst geprüft».
 
 Vor dem Lauf `ruff --version` prüfen: ein älteres ruff früher im `PATH`
 schlägt den Pin, ohne dass der Install etwas meldet. `scripts/check_ruff_pin.py`
@@ -334,6 +339,34 @@ aufgezeichneten Antworten, die Beschreibung von `live-sources.yml`, jede
 Begründung. Ein Gate mit Fehlalarmen wird abgeschaltet und schützt danach gar
 nichts; lieber vier belegte Angaben als zwölf wacklige.
 
+**`--fix` zieht nach, statt nur zu melden.** Drei der vier Angaben lassen sich
+aus ihren Quellen ableiten — Gate-Block, ruff-Pin, Live-Zahlen —, und genau die
+hat bisher Handarbeit nachgetragen. Zwei Grenzen sind Absicht:
+
+- Die **Skript-Liste** hat keine Reparatur. Ein unerwähntes Skript braucht
+  einen Satz darüber, was es tut; den kann niemand aus dem Dateinamen ableiten,
+  und eine erfundene Zeile wäre schlimmer als die rote Runde — sie machte das
+  Gate grün über einer Angabe, die nie jemand geprüft hat.
+- `--fix` korrigiert eine **falsche** Angabe, es stellt keine **entfernte**
+  wieder her. Sonst wäre Löschen erneut der bequemste Weg am Gate vorbei,
+  diesmal einer, den die Automatik selbst zuschüttet.
+
+Repariert wird nie blind: Nach jeder Reparatur läuft dieselbe Prüfung noch
+einmal über den neuen Text; greift sie nicht, endet der Lauf mit einem
+`ReparaturError` statt mit einem grünen Haken über halber Arbeit. Und `ci.yml`
+ruft den Check weiter **ohne** `--fix` auf — ein Gate, das sich selbst
+repariert, kann nie rot werden. Beide Seiten dieser Trennung hält
+`tests/test_check_claude_md.py` fest.
+
+**`claude-md-nachziehen.yml` fährt `--fix` auf Dependabot-PRs** und committet
+das Ergebnis auf den PR-Branch. Nur dort: Bei einem PR von Hand sitzt der Autor
+davor und sieht das rote Gate, ein Bot-PR hat niemanden. Der Commit stammt vom
+`GITHUB_TOKEN`, und daraus erzeugt GitHub keinen gewöhnlichen Folgelauf — der
+PR-Haken bleibt am vorigen Commit stehen oder der neue Lauf wartet auf Freigabe.
+Das ist ein Klick; die drei roten Tage auf `main` waren der Grund, und die
+verhindert der Nachzug so oder so. Ein Kommentar am PR sagt es, damit niemand
+den roten Haken für einen gescheiterten Nachzug hält.
+
 **Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
 täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
@@ -345,8 +378,9 @@ Dispatch auf einem Feature-Branch sagt nichts über `main`.
 «12 deselected»: 12 Fälle aus 10 Funktionen, denn `test_live_hn_extended_feeds`
 ist dreifach parametrisiert (`ask`, `show`, `job`). Wer die Funktionen zählt und
 die Differenz für einen Fehler hält, sucht umsonst — hier stand vorher «11», was
-auf keine der beiden Zählweisen passt. Beide Zahlen prüft
-`scripts/check_claude_md.py`.
+auf keine der beiden Zählweisen passt. Alle drei Zahlen dieses Satzes prüft
+`scripts/check_claude_md.py` — «12 deselected» gehört dazu, weil ein Nachzug an
+nur einer Hälfte den Satz still in sich widersprüchlich machte.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
 **Fixtures: aufgezeichnet.** `tests/fixtures/` hält 46 echte Antworten;
