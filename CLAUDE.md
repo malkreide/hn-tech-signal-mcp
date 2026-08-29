@@ -181,6 +181,47 @@ bis fünf Sekunden. Codex wird beim Umschalten von Draft auf ready ausgelöst un
 braucht danach Zeit; wer sofort mergt, hat das Häkchen gesetzt und den Review
 nicht abgewartet.
 
+**Nachtrag 29.8.2026: beide Wege zugleich, in vier Sekunden.** PR #59 in diesem
+Repo lief genau durch diese Lücke, und der Ablauf ist auf die Sekunde belegt:
+
+```
+09:29:00  Draft → ready (der Auslöser)
+09:29:02  «You have reached your Codex usage limits for code reviews.»
+09:29:04  gemergt
+```
+
+`get_reviews` war leer, `get_comments` trug genau diese eine Meldung — also der
+dritte Grund, sechs Tage nach der letzten Beobachtung vom 22.8. Und zwar nicht
+als Fortsetzung jener Sperre: Am 23.8. um 08:22 kam eine *andere* Meldung, das
+Kontingent war dort also zurück. Was zwischen dem 23. und dem 29. geschah, hat
+niemand gemessen; die sechs Tage sind ein Loch, keine Dauer. In diesem Repo
+liegt aus der Zeit auch kein einziger Codex-Kommentar — die PRs #56, #57 und
+#58 tragen keinen. Das grenzt nichts ein, es heisst nur, dass hier niemand
+hingesehen hat.
+
+Zwei Dinge macht dieser Ablauf schärfer als die Absätze davor.
+
+**Zwei Sekunden sind kein Review.** Der Absatz oben sagt, Codex brauche nach dem
+Auslöser Zeit — das gilt fürs Lesen eines Diffs, nicht fürs Scheitern. Die
+Kontingentprüfung liegt davor und antwortet sofort. Wer also innerhalb von
+Sekunden etwas vom Bot sieht, hat keinen besonders schnellen Review vor sich,
+sondern eine Ausfallmeldung, und muss den Text lesen. Eine Beobachtung, keine
+Messreihe — aber sie trennt zwei Fälle, die vorher beide unter «Codex hat
+geantwortet» fielen.
+
+**Die beiden Wege, den Prüfer zu verlieren, decken einander zu.** Hier fielen
+sie zusammen: Wäre die Meldung zwei Sekunden später gekommen, wäre sie auf
+einem bereits gemergten PR gelandet. Verloren ist sie dadurch nicht — der
+Kommentar steht weiter am PR und lässt sich nachlesen. Verloren ist der Anlass
+hinzusehen: Niemand liest die Kommentare eines PRs, den er vor vier Sekunden
+gemergt hat. «Ich schaue nach dem Merge nach» trägt deshalb nicht; die
+Wartezeit muss vor den Merge.
+
+Offen bleibt, ob Codex nach einer Kontingent-Meldung von selbst noch einmal
+anläuft, sobald sich das Fenster öffnet. Hier gab es dafür kein Zeitfenster —
+zwei Sekunden nach der Meldung war der PR zu. Bis das jemand beobachtet, ist
+die sichere Annahme, dass es einen neuen Auslöser braucht.
+
 Das Kontingent hängt am Konto, nicht am Repo, und Code-Reviews haben einen
 eigenen Topf — nur GitHub-getriggerte Reviews zählen hinein. ChatGPT-Pläne
 fahren ein rollendes Fünf-Stunden-Fenster plus Wochenlimits; welches greift,
