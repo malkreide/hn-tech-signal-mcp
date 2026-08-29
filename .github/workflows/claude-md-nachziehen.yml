@@ -1,0 +1,124 @@
+name: CLAUDE.md nachziehen
+
+# Dependabot hebt den ruff-Pin in `pyproject.toml`; CLAUDE.md nennt dieselbe
+# Zahl daneben im Klartext, und `check_claude_md.py` haelt beide gegeneinander.
+# Zweimal ist genau daran etwas gerissen: Beim Zug 0.16.1 -> 0.16.3 gab es das
+# Gate noch nicht und die Prosa verrottete still; beim Zug auf 0.16.4 gab es das
+# Gate, und der Default-Branch lag drei Tage rot (Laeufe 127 und 128), weil
+# niemand eine Prosazeile nachzog. Ein vorhergesagter Fehler, den nur Handarbeit
+# behebt, wird irgendwann als bekannt abgetan — und dann uebersieht man den
+# naechsten mit. Dieser Workflow zieht die Zeile nach, statt darauf zu warten.
+#
+# Bewusst ein eigener Workflow und kein Schritt in `ci.yml`: Ein Gate, das sich
+# selbst repariert, kann nie rot werden. `ci.yml` prueft weiter ohne `--fix`;
+# `tests/test_check_claude_md.py` haelt beide Seiten dieser Trennung fest.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      # Genau die Dateien, ueber die CLAUDE.md mechanisch geprueft wird und die
+      # Dependabot ueberhaupt anfasst. Ein PR, der nichts davon beruehrt, kann
+      # die geprueften Angaben nicht verschoben haben.
+      - "pyproject.toml"
+      - ".github/workflows/ci.yml"
+
+permissions:
+  contents: write # der Nachzug wird auf den PR-Branch committet
+  pull-requests: write # ein Kommentar erklaert den stehen gebliebenen Haken
+
+concurrency:
+  # Zwei Laeufe auf demselben Branch pushen sonst gegeneinander.
+  group: claude-md-nachziehen-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  nachziehen:
+    # Nur fuer Dependabot. Bei einem PR von Hand sitzt der Autor davor und sieht
+    # das rote Gate; ein Bot-PR hat niemanden, der die Zeile nachtraegt. Ein
+    # Workflow, der ungefragt in fremde Branches schreibt, waere die groessere
+    # Ueberraschung als eine rote Runde.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Der PR-Branch selbst, nicht der Merge-Commit: es wird darauf
+          # committet. Dependabot-Branches liegen in diesem Repo, nicht in einem
+          # Fork — `head_ref` genuegt deshalb.
+          ref: ${{ github.head_ref }}
+
+      - uses: actions/setup-python@v7
+        with:
+          # Eine Version genuegt: geprueft wird eine Textdatei, nicht die
+          # Python-Kompatibilitaet — dafuer ist die Matrix in `ci.yml` da.
+          python-version: "3.11"
+
+      # Kein Install: `check_claude_md.py` ist bewusst reine Standardbibliothek.
+      # Ein `uv pip install` hier waere ein zweiter Ort, an dem der ruff-Pin
+      # steht — genau die Doppelung, die dieser Workflow aufloest.
+      #
+      # `continue-on-error`, damit der Commit-Schritt auch dann laeuft, wenn ein
+      # nicht ableitbarer Befund offen bleibt: Die Skript-Liste kann `--fix`
+      # nicht nachziehen, den Pin daneben aber schon. Rot wird der Job weiter
+      # unten, aus dem gemerkten Ausgang.
+      - name: CLAUDE.md nachziehen
+        id: fix
+        continue-on-error: true
+        run: python scripts/check_claude_md.py --fix
+
+      - name: Committen und pushen
+        id: commit
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- CLAUDE.md; then
+            echo "CLAUDE.md unveraendert — nichts zu committen."
+            echo "gepusht=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Nur CLAUDE.md. Was `--fix` nicht anfasst, gehoert auch nicht in
+          # diesen Commit — ein Bot, der mehr mitnimmt als angekuendigt, ist
+          # schwerer zu pruefen als eine rote Runde.
+          git add -- CLAUDE.md
+          git commit -m "docs: CLAUDE.md den geaenderten Quellen nachziehen" \
+            -m "Automatisch erzeugt von .github/workflows/claude-md-nachziehen.yml."
+          git push
+          echo "gepusht=true" >> "$GITHUB_OUTPUT"
+
+      # Der Push traegt den GITHUB_TOKEN als Urheber, und GitHub erzeugt daraus
+      # keinen gewoehnlichen Folgelauf: Der PR-Haken bleibt am alten Commit rot
+      # stehen, oder der neue Lauf wartet auf Freigabe. Ohne diesen Hinweis
+      # sieht man einen roten PR, dessen Branch laengst gruen ist — und haelt
+      # den Nachzug fuer gescheitert. Entscheidend ist ohnehin der Merge: `main`
+      # laeuft danach gruen, und genau darum geht es hier.
+      - name: Den stehen gebliebenen Haken erklaeren
+        if: steps.commit.outputs.gepusht == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gh pr comment "$PR" --body "$(printf '%s\n' \
+            "CLAUDE.md wurde automatisch nachgezogen: $RUN_URL" \
+            "" \
+            "Der Commit stammt vom \`GITHUB_TOKEN\`; GitHub startet daraufhin" \
+            "keinen gewoehnlichen CI-Lauf. Ein roter Haken hier gehoert zum" \
+            "vorigen Commit — der Branch selbst ist nachgezogen. Fuer einen" \
+            "gruenen Haken den CI-Lauf freigeben bzw. neu anstossen." \
+            "" \
+            "Achtung: \`@dependabot rebase\` schreibt den Branch neu und wirft" \
+            "diesen Commit weg. Dann laeuft dieser Workflow erneut.")"
+
+      # Erst hier wird der Job rot: wenn `--fix` einen Befund offen liess, den
+      # es nicht ableiten kann. Der Nachzug oben ist dann trotzdem gepusht.
+      - name: Ergebnis durchreichen
+        if: steps.fix.outcome == 'failure'
+        run: |
+          echo "check_claude_md.py --fix hat einen Befund offen gelassen."
+          echo "Die Begruendung steht im Schritt «CLAUDE.md nachziehen»."
+          exit 1
