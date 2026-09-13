@@ -145,6 +145,60 @@ keinen Zeitpunkt, und die `X-RateLimit`-Kopfzeilen sind hinter dem Proxy nicht
 zu sehen. Belegt sind drei gesperrte Zeitpunkte — 11:14, 11:16 und 11:19 UTC.
 Wer daraus eine Dauer macht, hat sie erfunden.
 
+**Und eine Drosselung ist keine Drift.** Am 13.9.2026 war der geplante
+Live-Lauf rot (Lauf 34751511658): `test_live_arxiv_latest` und
+`test_live_arxiv_search` fielen mit `JSONDecodeError`, weil unter dem
+erwarteten JSON `[arXiv] Error: Request timed out.` bzw. `[arXiv] Error:
+TimeoutError: ` stand. Der Lauf eröffnete Issue #68 mit dem vorformulierten
+Satz, eine rote Zusicherung heisse meist, die Quelle habe ihr Schema
+gewechselt. Genau der war hier falsch.
+
+Die Quelle abgefragt, statt aus der Meldung zu schliessen: `export.arxiv.org`
+lässt die Anfrage stehen und antwortet dann mit `429 Rate exceeded.` — ohne
+`Retry-After`, `content-type: text/html`, vierzehn Byte Körper. Gemessen
+wurden 16 s, 16 s und 46 s bis zur Antwort; ein gelungener Aufruf brauchte
+kalt 27 s und danach 0,4 s und 0,17 s. Das Zeitbudget des Servers ist 25 s
+(`RETRY_TOTAL_BUDGET`), der Einzelversuch 20 s — beide laufen ab, bevor die
+429 eintrifft, und übrig bleibt ein Timeout. Das Schema war unverändert: ein
+paralleler 200er lieferte einen gewöhnlichen Atom-Feed mit drei `<entry>`.
+
+**Nicht gemessen** ist, dass der Runner dieselbe 429 sah. Sein Log zeigt nur
+`ReadTimeout` und `TimeoutError` — die 429 kam dort nie innerhalb des Budgets
+an. Dieselbe Klasse, nicht derselbe Beleg; wer daraus «in der CI war es auch
+das Rate-Limit» macht, hat es erfunden.
+
+Drei Handgriffe daraus:
+
+- **Wer nicht geantwortet hat, sagt nichts über sein Schema.** Ein stummer
+  Fehlschlag als Drift-Befund zu buchen, öffnet ein Issue über eine
+  Veränderung, die niemand gesehen hat. `scripts/classify_live_run.py` kennt
+  dafür seit diesem Vorfall einen dritten Ausgang: Tragen *alle* Fehlschläge
+  den Marker, den `_live_json` in `tests/test_server.py` setzt, ist der Lauf
+  `unknown` — rot wie zuvor, aber ohne Drift-Behauptung und ohne den
+  Drift-Thread anzufassen.
+- **Die Grenze läuft nicht am Statuscode entlang.** Timeout, 429 und 5xx
+  hätten nichts über die *Form* der Daten sagen können, also sind sie
+  `unknown`. Ein 403 oder 404 dagegen *ist* eine Veränderung und bleibt ein
+  Befund — sonst deckt die neue Milde genau den Fall zu, für den der Melder da
+  ist. Und sobald eine einzige Zusicherung über echte Daten fällt, ist der
+  ganze Lauf wieder `finding`: ein gleichzeitiger Netzausfall darf einen
+  echten Befund nicht verschlucken.
+- **Ein Rat, der auf die falsche Quelle zeigt, ist teurer als gar keiner.**
+  `_handle_error` hängte an jeden 429 und 403 «For GitHub, set GITHUB_TOKEN» —
+  auch an die von arXiv, das nach IP drosselt und wo kein Token etwas anhebt.
+  Dieselbe Sorte Fehlleitung wie die Meldung über den fehlenden
+  Organisations-Admin weiter oben: Sie schickt den Leser eine Einstellung
+  suchen, die es für sein Problem nicht gibt.
+
+Zwei Kleinigkeiten, die derselbe Lauf sichtbar machte. `asyncio.timeout` wirft
+das **eingebaute** `TimeoutError`, und das ist mit `httpx.TimeoutException`
+nicht verwandt — das eigene Zeitbudget fiel deshalb in den generischen Zweig
+und kam als `[arXiv] Error: TimeoutError: ` beim Modell an, mit nichts hinter
+dem Doppelpunkt. Dass genau die Ausfall-Ausnahmen ein leeres `str()` tragen,
+steht in der Retry-Schleife seit je als Kommentar; `_handle_error` hatte den
+Rückfalltext trotzdem nicht. Ein Hinweis, den eine Datei über sich selbst
+notiert hat, wirkt nicht von allein zwanzig Zeilen weiter.
+
 **Dieselbe Falle bei einer Konfigurationsoption: die Vorgabe lesen, bevor man
 einen Schlüssel für wirkungslos hält.** Am 29.8.2026 fielen die
 `labels:`-Zeilen aus den `dependabot.yml` des Portfolios, begründet mit

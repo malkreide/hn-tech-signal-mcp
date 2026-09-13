@@ -412,19 +412,35 @@ def _handle_error(e: Exception, source: str = "") -> str:
         str(e)[:200],
     )
     prefix = f"[{source}] " if source else ""
+    # Der Token-Hinweis gilt GitHub und sonst niemandem. Er stand vorher an
+    # jedem 429 und 403, also auch an denen von arXiv, HackerNews und
+    # Lobste.rs — am 13.9.2026 wörtlich «[arXiv] Error: Rate limit exceeded.
+    # For GitHub, set GITHUB_TOKEN for higher limits.» Ein Rat, der auf die
+    # falsche Quelle zeigt, ist teurer als gar keiner: Er schickt den Leser
+    # eine Einstellung suchen, die an arXiv nichts ändert, und verdeckt, dass
+    # arXiv schlicht drosselt. Kein Token hebt dort ein Limit.
+    github_hinweis = " For GitHub, set GITHUB_TOKEN." if source.lower() == "github" else ""
     if isinstance(e, httpx.HTTPStatusError):
         code = e.response.status_code
         if code == 429:
-            return (
-                f"{prefix}Error: Rate limit exceeded. "
-                "For GitHub, set GITHUB_TOKEN for higher limits."
-            )
+            return f"{prefix}Error: Rate limit exceeded.{github_hinweis}"
         if code == 403:
-            return f"{prefix}Error: Forbidden (HTTP 403). For GitHub, set GITHUB_TOKEN."
+            return f"{prefix}Error: Forbidden (HTTP 403).{github_hinweis}"
         return f"{prefix}Error: HTTP {code}"
-    if isinstance(e, httpx.TimeoutException):
+    # `TimeoutError` neben `httpx.TimeoutException`, und das ist kein Gürtel
+    # mit Hosenträger: Die beiden sind NICHT verwandt. Das Zeitbudget in
+    # `_request_with_retry` kommt von `asyncio.timeout`, und das wirft den
+    # eingebauten `TimeoutError` — httpx hat damit nichts zu tun. Am 13.9.2026
+    # stand deshalb im Live-Lauf wörtlich `[arXiv] Error: TimeoutError: ` am
+    # Modell an: der generische Zweig darunter, mit dem leeren `str(e)`, vor
+    # dem die Retry-Schleife zwanzig Zeilen weiter oben schon warnt. Ein
+    # abgelaufenes Budget ist ein Timeout, ganz gleich wer die Uhr hielt.
+    if isinstance(e, (httpx.TimeoutException, TimeoutError, UpstreamUnavailableError)):
         return f"{prefix}Error: Request timed out. Try again in a moment."
-    return f"{prefix}Error: {type(e).__name__}: {str(e)[:200]}"
+    # `str(e)` ist bei genau den Ausnahmen leer, die ein echter Ausfall
+    # erzeugt. Ohne den Rückfalltext endet die Meldung nach dem Doppelpunkt
+    # im Nichts und sieht aus wie ein abgeschnittener Text.
+    return f"{prefix}Error: {type(e).__name__}: {str(e)[:200] or 'no further detail'}"
 
 
 def _ts_to_iso(ts: Optional[int]) -> str:

@@ -74,6 +74,35 @@ CLEAR = "clear"
 FINDING = "finding"
 UNKNOWN = "unknown"
 
+# Das Wort, mit dem ein Live-Test sagt: Die Quelle hat gar nicht geantwortet.
+# Gesetzt wird es in `tests/test_server.py` (`_live_json`), gelesen hier —
+# `test_marker_stimmt_mit_der_testsuite_ueberein` haelt die beiden Seiten
+# zusammen, damit ein Umbenennen auf einer Seite nicht still die Einordnung
+# aushebelt.
+UNREACHABLE_MARKER = "QUELLE-HAT-NICHT-GEANTWORTET"
+
+
+def _unreachable_failures(suites: list[ET.Element]) -> int:
+    """Wie viele `<failure>` tragen das Wort fuer «Quelle hat nicht geantwortet».
+
+    Gezaehlt wird der Marker, nicht das Wort «Timeout». Der Unterschied ist
+    der ganze Punkt: Wer hier nach Fehlertexten suchte, wuerde eine echte
+    Drift-Zusicherung ueber ein Feld, das zufaellig `timeout` heisst, in ein
+    `unknown` verwandeln und damit genau den Befund verschlucken, fuer den
+    dieser Melder da ist. Den Marker setzt nur `_live_json`, und nur dann,
+    wenn der Server selbst gemeldet hat, dass die Quelle stumm blieb.
+
+    Gelesen werden Attribut UND Text: pytest schreibt die Meldung in beide,
+    kuerzt das Attribut aber bei langen Texten.
+    """
+    count = 0
+    for suite in suites:
+        for failure in suite.iter("failure"):
+            haystack = f"{failure.get('message') or ''}\n{failure.text or ''}"
+            if UNREACHABLE_MARKER in haystack:
+                count += 1
+    return count
+
 
 def classify(
     report: Path,
@@ -113,6 +142,25 @@ def classify(
     )
 
     if failures or errors:
+        # Eine Quelle, die nicht geantwortet hat, sagt nichts ueber ihr Schema.
+        # Sie als `finding` zu buchen heisst, Drift zu behaupten, die niemand
+        # gesehen hat — am 13.9.2026 genau so passiert: arXiv liess die Anfrage
+        # 16 bis 46 Sekunden stehen und antwortete dann mit `429 Rate
+        # exceeded.`, das Zeitbudget des Servers lief vorher ab, und der Lauf
+        # eroeffnete Issue #68 ueber ein Schema, das unveraendert war.
+        #
+        # `unknown` macht den Job trotzdem rot. Der Unterschied ist nur, dass
+        # der Drift-Thread in Ruhe bleibt: weder aufmachen noch zumachen. Ein
+        # Melder, der bei jeder Netzstoerung Drift ruft, wird abgeschaltet und
+        # schuetzt danach vor gar nichts.
+        unreachable = _unreachable_failures(suites)
+        if errors == 0 and failures and unreachable == failures:
+            return (
+                UNKNOWN,
+                f"alle {failures} Fehlschlag/Fehlschlaege von {tests} Test(s) sind "
+                "Quellen, die nicht geantwortet haben — ueber ihr Schema sagt "
+                "dieser Lauf nichts",
+            )
         return (
             FINDING,
             f"{failures} Fehlschlag/Fehlschlaege und {errors} Fehler von {tests} Test(s)",
