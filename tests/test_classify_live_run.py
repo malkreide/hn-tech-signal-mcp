@@ -219,3 +219,103 @@ class GithubOutputTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def suite_mit_fehlschlaegen(*meldungen: str, errors: int = 0, tests: int = 12) -> str:
+    """Ein Report mit je einem `<testcase>` pro Meldung.
+
+    Anders als `suite()` traegt dieser die Fehlertexte mit — ohne sie kann die
+    Einordnung «nicht geantwortet» gar nicht von «anders geantwortet»
+    trennen, und ein Test daraufhin nichts beweisen.
+    """
+    faelle = "".join(
+        f'<testcase name="test_{i}"><failure message="{m}">{m}</failure></testcase>'
+        for i, m in enumerate(meldungen)
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<testsuites><testsuite name="pytest" tests="{tests}" '
+        f'failures="{len(meldungen)}" errors="{errors}" skipped="0">'
+        f"{faelle}</testsuite></testsuites>"
+    )
+
+
+class StummeQuelleTest(unittest.TestCase):
+    """Eine Quelle, die nicht geantwortet hat, ist kein Drift-Befund.
+
+    Gemessen am 13.9.2026: arXiv liess die Anfrage 16 bis 46 Sekunden stehen
+    und antwortete dann mit `429 Rate exceeded.`; das Zeitbudget des Servers
+    lief vorher ab. Der Lauf eroeffnete Issue #68 mit der Behauptung, das
+    Schema habe sich geaendert. Geaendert hatte sich nichts — eine parallele
+    Abfrage derselben URL lieferte einen unveraenderten Atom-Feed.
+    """
+
+    def _state(self, xml: str) -> tuple[str, str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            return clr.classify(write(Path(tmp), xml))
+
+    def test_nur_stumme_quellen_sind_unknown(self):
+        state, reason = self._state(
+            suite_mit_fehlschlaegen(
+                f"{clr.UNREACHABLE_MARKER}: arXiv — [arXiv] Error: Request timed out.",
+                f"{clr.UNREACHABLE_MARKER}: arXiv — [arXiv] Error: Rate limit exceeded.",
+            )
+        )
+        self.assertEqual(state, clr.UNKNOWN)
+        self.assertIn("nicht geantwortet", reason)
+
+    def test_eine_einzige_stumme_quelle_genuegt(self):
+        """Keine Mehrheitsschwelle — ein Fehlschlag, und der ist stumm.
+
+        Das `assertNotEqual(CLEAR)` steht dabei, weil es die teure Richtung
+        benennt: Nicht das verschwiegene Drift ist die Gefahr, sondern ein
+        `clear`, das ein offenes Issue zumacht und behauptet, die Quellen
+        antworteten wieder wie erwartet. Allein taugt es als Zusicherung
+        nichts — `finding` ist auch nicht `clear` —, deshalb steht das
+        `assertEqual(UNKNOWN)` davor und traegt den Test.
+        """
+        state, _ = self._state(
+            suite_mit_fehlschlaegen(f"{clr.UNREACHABLE_MARKER}: arXiv — timeout")
+        )
+        self.assertEqual(state, clr.UNKNOWN)
+        self.assertNotEqual(state, clr.CLEAR)
+
+    def test_echter_drift_bleibt_ein_befund(self):
+        """Die Gegenprobe: ohne Marker aendert sich nichts am alten Verhalten."""
+        state, _ = self._state(
+            suite_mit_fehlschlaegen("assert 0 > 0 — by_category hat keinen Schluessel cs.AI")
+        )
+        self.assertEqual(state, clr.FINDING)
+
+    def test_gemischt_ist_ein_befund(self):
+        """Eine stumme UND eine gedriftete Quelle: Drift wurde gesehen.
+
+        Nur ein Lauf, in dem AUSSCHLIESSLICH niemand geantwortet hat, sagt
+        nichts. Sobald eine Zusicherung ueber echte Daten faellt, gehoert das
+        gemeldet — sonst deckt ein gleichzeitiger Netzausfall den Befund zu.
+        """
+        state, _ = self._state(
+            suite_mit_fehlschlaegen(
+                f"{clr.UNREACHABLE_MARKER}: arXiv — timeout",
+                "assert 0 > 0 — Lobste.rs liefert keine Titel mehr",
+            )
+        )
+        self.assertEqual(state, clr.FINDING)
+
+    def test_fehler_neben_stummen_quellen_bleiben_ein_befund(self):
+        """Ein `error` ist kein Fehlschlag und wird nicht mitverschluckt."""
+        state, _ = self._state(
+            suite_mit_fehlschlaegen(f"{clr.UNREACHABLE_MARKER}: arXiv — timeout", errors=1)
+        )
+        self.assertEqual(state, clr.FINDING)
+
+    def test_marker_stimmt_mit_der_testsuite_ueberein(self):
+        """Beide Seiten des Vertrags, sonst haelt er nur zufaellig.
+
+        Die Einordnung liest ein Wort, das `tests/test_server.py` schreibt. Wer
+        eines von beiden umbenennt, bekaeme ohne diesen Test eine still
+        wirkungslose Einordnung: Jeder stumme Lauf waere wieder ein
+        Drift-Befund, und nichts waere rot ausser dem Melder selbst.
+        """
+        quelle = (Path(__file__).parent / "test_server.py").read_text(encoding="utf-8")
+        self.assertIn(f'QUELLE_STUMM = "{clr.UNREACHABLE_MARKER}"', quelle)

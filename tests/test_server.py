@@ -249,6 +249,65 @@ def test_handle_error_timeout():
     assert "timed out" in result.lower() or "timeout" in result.lower()
 
 
+def test_handle_error_kennt_das_eigene_zeitbudget():
+    """Der `TimeoutError` aus `asyncio.timeout` ist ein Timeout, kein Sonstiges.
+
+    `httpx.TimeoutException` und der eingebaute `TimeoutError` sind NICHT
+    verwandt — das Budget in `_request_with_retry` wirft den zweiten. Vor
+    dieser Zusicherung fiel er in den generischen Zweig, und der Live-Lauf vom
+    13.9.2026 stellte dem Modell woertlich `[arXiv] Error: TimeoutError: `
+    zu: eine Fehlermeldung, die nach dem Doppelpunkt aufhoert und keinen
+    Hinweis gibt, was zu tun waere.
+    """
+    from hn_tech_signal_mcp.server import UpstreamUnavailableError, _handle_error
+
+    for exc in (TimeoutError(), UpstreamUnavailableError("Budget weg")):
+        result = _handle_error(exc, source="arXiv")
+        assert "timed out" in result.lower(), f"{type(exc).__name__}: {result}"
+        assert type(exc).__name__ not in result, (
+            f"Der Klassenname gehoert ins Log, nicht ans Modell: {result}"
+        )
+
+
+def test_handle_error_endet_nie_im_nichts():
+    """Ein leeres `str(e)` darf keine Meldung mit haengendem Doppelpunkt geben.
+
+    Genau die Ausnahmen, die ein echter Ausfall erzeugt — `ConnectError`,
+    `ReadTimeout` — tragen einen leeren Text. Die Retry-Schleife hat dafuer
+    laengst einen Rueckfall; `_handle_error` hatte keinen.
+    """
+    from hn_tech_signal_mcp.server import _handle_error
+
+    result = _handle_error(ValueError(), source="arXiv")
+    assert not result.rstrip().endswith(":"), result
+    assert "no further detail" in result
+
+
+def test_token_hinweis_nur_fuer_github():
+    """Ein Rat, der auf die falsche Quelle zeigt, ist teurer als gar keiner.
+
+    Der Hinweis stand vorher an jedem 429 und 403, also auch an denen von
+    arXiv, HackerNews und Lobste.rs. Gemessen am 13.9.2026 kam aus dem
+    Live-Lauf woertlich «[arXiv] Error: Rate limit exceeded. For GitHub, set
+    GITHUB_TOKEN for higher limits.» — arXiv drosselt nach IP, und kein Token
+    der Welt hebt das an.
+    """
+    from hn_tech_signal_mcp.server import _handle_error
+
+    def envelope(code: int, source: str) -> str:
+        response = MagicMock()
+        response.status_code = code
+        exc = httpx.HTTPStatusError("x", request=MagicMock(), response=response)
+        return _handle_error(exc, source=source)
+
+    for code in (429, 403):
+        assert "GITHUB_TOKEN" in envelope(code, "GitHub"), code
+        for fremd in ("arXiv", "HackerNews", "Lobste.rs", "HN Algolia"):
+            meldung = envelope(code, fremd)
+            assert "GITHUB_TOKEN" not in meldung, meldung
+            assert "GitHub" not in meldung, meldung
+
+
 def test_handle_error_rate_limit():
     """Error handler advises on rate limits."""
     import httpx
@@ -1267,6 +1326,57 @@ async def test_digest_github_raises_only_when_every_topic_fails():
 # Live integration tests – require network
 # ---------------------------------------------------------------------------
 
+# Muss woertlich mit `UNREACHABLE_MARKER` in `scripts/classify_live_run.py`
+# uebereinstimmen; `tests/test_classify_live_run.py` haelt beide Seiten
+# zusammen. Bewusst ein erfundenes Wort und kein Satzfragment: Es soll in
+# keinem echten Zusicherungstext zufaellig vorkommen koennen.
+QUELLE_STUMM = "QUELLE-HAT-NICHT-GEANTWORTET"
+
+# Die Envelopes, mit denen `_handle_error` sagt, dass die Quelle stumm blieb.
+# Bewusst KURZ gehalten:
+#
+#   Timeout / abgelaufenes Budget — es kam ueberhaupt keine Antwort.
+#   429 — die Quelle hat geantwortet, aber ohne Nutzlast. Ueber ihr Schema
+#         sagt ein «Rate exceeded.» genauso wenig wie ein Timeout.
+#   5xx — die Quelle ist kaputt, das ist keine Aussage ueber ihren Vertrag.
+#
+# Nicht dabei ist 403/404 und jeder andere 4xx: Ein Endpunkt, der weg ist oder
+# den Zutritt verweigert, IST eine Veraenderung, und die soll ein Issue
+# aufmachen, damit jemand hinsieht. Die Grenze laeuft nicht am Statuscode
+# entlang, sondern an der Frage, ob die Antwort etwas ueber die FORM der Daten
+# haette sagen koennen.
+_STUMME_ENVELOPES = (
+    "Error: Request timed out.",
+    "Error: Rate limit exceeded.",
+)
+
+
+def _fail_if_stumm(result: str, quelle: str) -> None:
+    """Scheitern mit dem Marker, wenn der Server meldet: keine Antwort erhalten.
+
+    Eigene Funktion, weil nicht jeder Live-Test JSON liest —
+    `test_live_hn_discussion_missing_item` prueft einen Klartext-Envelope und
+    braucht dieselbe Unterscheidung.
+    """
+    if any(envelope in result for envelope in _STUMME_ENVELOPES):
+        pytest.fail(f"{QUELLE_STUMM}: {quelle} — {result}")
+
+
+def _live_json(result: str, quelle: str):
+    """Antwort eines Live-Tools lesen — oder unterscheidbar scheitern.
+
+    Ohne diesen Helfer landet ein stummer Server als gewoehnlicher
+    `JSONDecodeError` im Report, und die Einordnung bucht ihn als Drift. Am
+    13.9.2026 hat das Issue #68 eroeffnet, mit der Behauptung, arXiv habe sein
+    Schema geaendert; geaendert hatte sich nichts, arXiv drosselte nur.
+
+    Der Test faellt trotzdem — der Lauf wird rot, wie er soll. Er faellt nur
+    mit einem Wort, an dem die Einordnung «nicht geantwortet» von «anders
+    geantwortet» unterscheiden kann.
+    """
+    _fail_if_stumm(result, quelle)
+    return json.loads(result)
+
 
 @pytest.mark.live
 @pytest.mark.asyncio
@@ -1275,7 +1385,7 @@ async def test_live_hn_top_stories():
     from hn_tech_signal_mcp.server import HnTopStoriesInput, hn_top_stories
 
     result = await hn_top_stories(HnTopStoriesInput(limit=3))
-    data = json.loads(result)
+    data = _live_json(result, "HackerNews")
     assert data["count"] > 0
     assert len(data["stories"]) > 0
     assert data["stories"][0]["title"]
@@ -1288,7 +1398,7 @@ async def test_live_hn_search():
     from hn_tech_signal_mcp.server import HnSearchInput, hn_search
 
     result = await hn_search(HnSearchInput(query="large language models", limit=3, days_back=30))
-    data = json.loads(result)
+    data = _live_json(result, "HN Algolia")
     assert "hits" in data
 
 
@@ -1299,7 +1409,7 @@ async def test_live_arxiv_latest():
     from hn_tech_signal_mcp.server import ArxivLatestInput, arxiv_latest
 
     result = await arxiv_latest(ArxivLatestInput(categories=["cs.AI"], limit=3))
-    data = json.loads(result)
+    data = _live_json(result, "arXiv")
     assert data["total_papers"] > 0
     papers = data["by_category"]["cs.AI"]
     assert len(papers) > 0
@@ -1313,7 +1423,7 @@ async def test_live_arxiv_search():
     from hn_tech_signal_mcp.server import ArxivSearchInput, arxiv_search
 
     result = await arxiv_search(ArxivSearchInput(query="LLM agents", limit=3))
-    data = json.loads(result)
+    data = _live_json(result, "arXiv")
     assert data["count"] > 0
 
 
@@ -1324,7 +1434,7 @@ async def test_live_lobsters_hot():
     from hn_tech_signal_mcp.server import LobstersHotInput, lobsters_hot
 
     result = await lobsters_hot(LobstersHotInput(limit=5))
-    data = json.loads(result)
+    data = _live_json(result, "Lobste.rs")
     assert data["count"] > 0
     assert data["stories"][0]["title"]
 
@@ -1336,7 +1446,7 @@ async def test_live_github_trending():
     from hn_tech_signal_mcp.server import GithubTrendingAiInput, github_trending_ai
 
     result = await github_trending_ai(GithubTrendingAiInput(topic="llm", limit=3, min_stars=100))
-    data = json.loads(result)
+    data = _live_json(result, "GitHub")
     assert data["count"] > 0
     assert data["repos"][0]["stars"] >= 100
 
@@ -1352,7 +1462,7 @@ async def test_live_digest():
             focus=None, hn_limit=3, arxiv_limit=3, lobsters_limit=3, github_limit=3
         )
     )
-    data = json.loads(result)
+    data = _live_json(result, "Digest")
     assert "sources" in data
     assert "hn" in data["sources"]
     assert "arxiv" in data["sources"]
@@ -1367,7 +1477,9 @@ async def test_live_hn_extended_feeds(feed):
     """Live: the three feeds added in 0.3.0 return usable items."""
     from hn_tech_signal_mcp.server import HnTopStoriesInput, hn_top_stories
 
-    data = json.loads(await hn_top_stories(HnTopStoriesInput(feed=feed, limit=3)))
+    data = _live_json(
+        await hn_top_stories(HnTopStoriesInput(feed=feed, limit=3)), f"HackerNews/{feed}"
+    )
     assert data["count"] > 0, f"{feed} feed came back empty"
     assert data["stories"][0]["title"]
     assert data["stories"][0]["type"] in {"story", "job"}
@@ -1384,11 +1496,12 @@ async def test_live_hn_discussion():
         hn_top_stories,
     )
 
-    top = json.loads(await hn_top_stories(HnTopStoriesInput(feed="top", limit=1)))
+    top = _live_json(await hn_top_stories(HnTopStoriesInput(feed="top", limit=1)), "HackerNews")
     story_id = top["stories"][0]["id"]
 
-    data = json.loads(
-        await hn_discussion(HnDiscussionInput(story_id=story_id, max_depth=2, max_comments=10))
+    data = _live_json(
+        await hn_discussion(HnDiscussionInput(story_id=story_id, max_depth=2, max_comments=10)),
+        "HackerNews",
     )
     assert data["story"]["id"] == story_id
     assert data["fetched_comments"] <= 10
@@ -1403,4 +1516,9 @@ async def test_live_hn_discussion_missing_item():
     from hn_tech_signal_mcp.server import HnDiscussionInput, hn_discussion
 
     result = await hn_discussion(HnDiscussionInput(story_id=999999999999))
+    # Auch hier, obwohl nichts geparst wird: Ein stummer Server liefert einen
+    # Fehler-Envelope, in dem «No item found» genauso wenig steht wie in einer
+    # geaenderten Antwort. Ohne diese Zeile waeren die beiden Faelle im Report
+    # nicht zu unterscheiden.
+    _fail_if_stumm(result, "HackerNews")
     assert "No item found" in result
