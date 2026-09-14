@@ -8,6 +8,7 @@ Run live integration tests:
 """
 
 import json
+import re
 from unittest.mock import MagicMock
 
 import httpx
@@ -1350,6 +1351,25 @@ _STUMME_ENVELOPES = (
     "Error: Rate limit exceeded.",
 )
 
+# 5xx steht nicht in der Liste oben, weil `_handle_error` dafuer keinen eigenen
+# Envelope hat: Alles ausser 429 und 403 faellt in `Error: HTTP {code}`, und
+# darin stecken auch 400, 404 und 422 — die BLEIBEN ein Befund. Der Bereich
+# muss deshalb geprueft werden, nicht der Text. In der ersten Fassung stand
+# 5xx bloss im Kommentar und nirgends im Code; eine Zusicherung, die nur in
+# der Prosa existiert, ist keine.
+_STUMME_HTTP_RANGE = range(500, 600)
+
+
+def _ist_stummer_envelope(result: str) -> bool:
+    """Ist die GANZE Antwort eine Meldung «Quelle hat nicht geantwortet»?"""
+    kopf = result.lstrip()
+    # `[arXiv] Error: …` — die Quelle davor ist optional, den Rest schneiden.
+    rest = kopf.split("] ", 1)[1] if kopf.startswith("[") and "] " in kopf else kopf
+    if any(rest.startswith(envelope) for envelope in _STUMME_ENVELOPES):
+        return True
+    treffer = re.fullmatch(r"Error: HTTP (\d{3})", rest.strip())
+    return bool(treffer) and int(treffer.group(1)) in _STUMME_HTTP_RANGE
+
 
 def _fail_if_stumm(result: str, quelle: str) -> None:
     """Scheitern mit dem Marker, wenn der Server meldet: keine Antwort erhalten.
@@ -1357,8 +1377,19 @@ def _fail_if_stumm(result: str, quelle: str) -> None:
     Eigene Funktion, weil nicht jeder Live-Test JSON liest —
     `test_live_hn_discussion_missing_item` prueft einen Klartext-Envelope und
     braucht dieselbe Unterscheidung.
+
+    Ein Envelope ist die GANZE Antwort, nie ein Schnipsel darin. Die erste
+    Fassung prüfte per Teilstring und traf damit am 14.9.2026 den Digest: Der
+    hatte einwandfrei geantwortet — vollständiges JSON, `degraded_sources:
+    ["arxiv"]`, drei Quellen mit Daten —, trug die Zeichenkette aber im Feld
+    `sources.arxiv.error`. Genau der Fall, für den `tech_signal_digest` gebaut
+    ist, zählte so als stumme Quelle.
+
+    Deshalb der Ankertest: `_handle_error` gibt immer eine nackte Zeile zurück,
+    die mit `[Quelle] Error:` oder `Error:` beginnt, und nie JSON. Wer eine
+    ganze Antwort daran misst, kann keinen Text im Inneren mehr verwechseln.
     """
-    if any(envelope in result for envelope in _STUMME_ENVELOPES):
+    if _ist_stummer_envelope(result):
         pytest.fail(f"{QUELLE_STUMM}: {quelle} — {result}")
 
 
@@ -1376,6 +1407,81 @@ def _live_json(result: str, quelle: str):
     """
     _fail_if_stumm(result, quelle)
     return json.loads(result)
+
+
+# --- Unit-Tests fuer die beiden Helfer oben (KEIN Netz, kein `live`-Marker) ---
+#
+# Sie stehen hier statt oben bei den uebrigen Unit-Tests, weil sie sonst
+# zwoelfhundert Zeilen von dem entfernt laegen, was sie pruefen. Gefahren
+# werden sie mit `-m "not live"`, also in jeder CI-Runde.
+
+
+DIGEST_MIT_DEGRADIERTER_QUELLE = json.dumps(
+    {
+        "generated_at": "2026-09-14 10:43 UTC",
+        "degraded_sources": ["arxiv"],
+        "sources": {
+            "hn": {"label": "HackerNews", "count": 3, "stories": [{"title": "x"}]},
+            "arxiv": {
+                "label": "arXiv",
+                "count": 0,
+                "error": "[arXiv] Error: Request timed out. Try again in a moment.",
+            },
+            "lobsters": {"label": "Lobste.rs", "count": 5},
+            "github": {"label": "GitHub Trending", "count": 3},
+        },
+    }
+)
+
+
+def test_eine_geglueckte_antwort_ist_nie_stumm():
+    """Der Regressionsfall vom 14.9.2026.
+
+    `tech_signal_digest` faechert ueber alle Quellen auf und meldet eine
+    ausgefallene als `degraded_sources`, statt selbst zu scheitern — genau
+    dafuer ist er gebaut. Sein JSON traegt den Fehlertext der ausgefallenen
+    Quelle dann im Feld `sources.arxiv.error`.
+
+    Die erste Fassung von `_fail_if_stumm` prueft per Teilstring und zaehlte
+    diesen einwandfreien Digest als stumme Quelle. Der Live-Lauf 34834479172
+    meldete dadurch drei Fehlschlaege statt zwei, und `test_live_digest` haette
+    kuenftig nie wieder Drift finden koennen, solange irgendeine Quelle langsam
+    ist — der Test war still zu einem Quellen-Waechter umgebaut worden.
+    """
+    assert not _ist_stummer_envelope(DIGEST_MIT_DEGRADIERTER_QUELLE)
+    daten = _live_json(DIGEST_MIT_DEGRADIERTER_QUELLE, "Digest")
+    assert daten["degraded_sources"] == ["arxiv"]
+
+
+def test_ein_nackter_envelope_ist_stumm():
+    """Mit und ohne Quellen-Prefix, denn `_handle_error` setzt es nur optional."""
+    for envelope in (
+        "[arXiv] Error: Request timed out. Try again in a moment.",
+        "Error: Request timed out. Try again in a moment.",
+        "[GitHub] Error: Rate limit exceeded. For GitHub, set GITHUB_TOKEN.",
+        "[Lobste.rs] Error: HTTP 503",
+        "Error: HTTP 500",
+    ):
+        assert _ist_stummer_envelope(envelope), envelope
+        with pytest.raises(pytest.fail.Exception, match=QUELLE_STUMM):
+            _fail_if_stumm(envelope, "Testquelle")
+
+
+def test_eine_veraenderung_bleibt_ein_befund():
+    """Die Gegenrichtung: Was die Quelle VERAENDERT hat, darf nie stumm heissen.
+
+    Ein weggefallener Endpunkt (404) oder eine verweigerte Auskunft (403) ist
+    eine Aussage — die soll ein Issue aufmachen, damit jemand hinsieht. Wer
+    sie unter `unknown` bucht, deckt genau den Fall zu, fuer den der Melder da
+    ist.
+    """
+    for envelope in (
+        "[HackerNews] Error: HTTP 404",
+        "[arXiv] Error: HTTP 400",
+        "[GitHub] Error: Forbidden (HTTP 403). For GitHub, set GITHUB_TOKEN.",
+        "[HackerNews] No item found for id 999999999999",
+    ):
+        assert not _ist_stummer_envelope(envelope), envelope
 
 
 @pytest.mark.live

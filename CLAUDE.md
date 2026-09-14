@@ -199,6 +199,43 @@ steht in der Retry-Schleife seit je als Kommentar; `_handle_error` hatte den
 Rückfalltext trotzdem nicht. Ein Hinweis, den eine Datei über sich selbst
 notiert hat, wirkt nicht von allein zwanzig Zeilen weiter.
 
+**Nachtrag 14.9.2026: der Wächter traf den Falschen.** Der nächste geplante
+Lauf (34834479172) zeigte, dass die Einordnung greift — `state=unknown` statt
+`finding`, kein Drift-Issue mehr. Er meldete aber **drei** Fehlschläge statt
+zwei, und der dritte war hausgemacht: `test_live_digest`.
+
+`tech_signal_digest` fächert über alle Quellen zugleich auf und meldet eine
+ausgefallene als `degraded_sources`, statt selbst zu scheitern — genau dafür
+ist er gebaut. Sein JSON trägt den Fehlertext der ausgefallenen Quelle dann im
+Feld `sources.arxiv.error`. Die erste Fassung von `_fail_if_stumm` prüfte per
+Teilstring über die ganze Antwort und traf ihn dort. Ein einwandfrei
+arbeitender Digest zählte so als stumme Quelle.
+
+Der Schaden wäre nicht die rote Zahl gewesen, sondern der stille Umbau:
+`test_live_digest` hätte nie wieder Drift finden können, solange irgendeine
+Quelle langsam ist. Ein Test, der bei jeder Drosselung vorher abbiegt, prüft
+den Vertrag nicht mehr — dieselbe Klasse wie der Melder, den er reparieren
+sollte, nur eine Ebene tiefer.
+
+Zwei Handgriffe daraus:
+
+- **Ein Envelope ist die ganze Antwort, nie ein Schnipsel darin.** `_handle_error`
+  gibt immer eine nackte Zeile zurück, die mit `[Quelle] Error:` oder `Error:`
+  beginnt, und nie JSON. Daran wird verankert geprüft, nicht per `in`. Wer den
+  Fehlertext einer Quelle sucht, findet ihn sonst auch in jeder Antwort, die
+  ihn bloss *berichtet*.
+- **Eine Zusicherung, die nur in der Prosa steht, ist keine.** Im selben Zug
+  fiel auf, dass der Kommentar über der Envelope-Liste 5xx als stumm führte,
+  der Code aber nicht: `_handle_error` hat dafür keinen eigenen Envelope,
+  alles ausser 429 und 403 fällt in `Error: HTTP {code}`. Dort steckt auch
+  400, 404 und 422 — die bleiben ein Befund —, also muss der Bereich geprüft
+  werden und nicht der Text.
+
+Belegt ist die Korrektur nicht am Unit-Test allein: arXiv drosselte am selben
+Tag weiter (429 nach 15,6 s, 46,9 s und 26,3 s), und unter genau dieser
+Bedingung läuft `test_live_digest` jetzt grün, mit
+`degraded_sources: ['arxiv', 'github']` in der Antwort.
+
 **Dieselbe Falle bei einer Konfigurationsoption: die Vorgabe lesen, bevor man
 einen Schlüssel für wirkungslos hält.** Am 29.8.2026 fielen die
 `labels:`-Zeilen aus den `dependabot.yml` des Portfolios, begründet mit
