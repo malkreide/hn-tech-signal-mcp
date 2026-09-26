@@ -383,7 +383,8 @@ wie der Code: Nichts ist rot, weil nichts geprüft wird, worauf es ankommt.
 
 ## Teil 2 — Dieses Repo
 
-**ruff:** gepinnt auf `0.16.6`, nur im `dev`-Extra von `pyproject.toml`.
+**ruff:** exakt gepinnt, nur im `dev`-Extra von `pyproject.toml` — die Version
+steht dort und nicht in diesem Text.
 Eine `.pre-commit-config.yaml` existiert nicht — es gibt keinen zweiten Pin
 und damit auch keine Abweichung. Lokal vor dem Push genügt
 `uv pip install --system -e ".[dev]"`; ein separates ruff nachzuinstallieren
