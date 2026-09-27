@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Strukturierte Ausgabe statt Text im Textfeld.** Jedes der acht Werkzeuge
+  meldet jetzt sein eigenes, geschlossenes `outputSchema`
+  (`src/hn_tech_signal_mcp/outputs.py`) und liefert das Ergebnis als
+  `structuredContent`. Vorher leitete das SDK aus `-> str` das Schema
+  `{"result": string}` ab — ein strukturierter Client bekam das JSON als einen
+  einzigen String.
+
+  **Fehler tragen jetzt `isError: true`.** Ein Quellenausfall (`[Quelle] Error:
+  …`) und eine unbekannte oder falsche ID in `hn_discussion` kamen bisher als
+  Erfolg an, dessen Text zufaellig mit «Error:» begann. Ein teilweise
+  ausgefallener Digest bleibt ein Erfolg: der Ausfall steht im Objekt
+  (`degraded_sources`, `error` je Quelle).
+
+  **Was gleich bleibt:** der Text, Byte fuer Byte. Die Python-Funktionen geben
+  weiter JSON-Text zurueck; Cache, Unit-Tests, `_live_json` und
+  `scripts/classify_live_run.py` lesen genau diesen Text, und die Envelopes
+  sind daran verankert. Umgebaut ist nur, was auf den Draht geht: `_tool`
+  registriert beim SDK einen Adapter mit `Annotated[CallToolResult, Modell]`.
+  Ein Erfolg ist dabei immer ein JSON-Objekt, ein Fehler nie — das ist die
+  Unterscheidung, und sie ist getestet.
+
+  Passt eine Antwort nicht zu ihrem Schema, meldet der Adapter einen Defekt des
+  Servers mit den Feldpfaden, nicht den Werten; das SDK haette die
+  beanstandeten Quelldaten in die Fehlermeldung geschrieben.
+
+  Geprueft an echten Daten: jede Aufzeichnung laeuft in beiden Aeren durch den
+  SDK-Pfad, und die Live-Tests rufen die Werkzeuge jetzt ueber einen Client
+  statt direkt — derselbe Abruf, keine Mehrlast auf arXiv. Gegenprobe je
+  Zusicherung: ohne `isError` fallen die Fehlertests, mit strengem
+  `description: str` der GitHub-Nullwert-Test, mit `extra="allow"` der
+  Schematest, mit `authors: list[int]` die arXiv-Aufzeichnungen, ohne
+  Vorpruefung im Adapter der Adapter-Test.
+
 ### Fixed
 
 - **`serverInfo.version` war leer — auf jeder Antwort.** Spec `2026-07-28`

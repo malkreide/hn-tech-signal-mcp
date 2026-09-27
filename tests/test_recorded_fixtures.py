@@ -31,6 +31,7 @@ from typing import Any
 import httpx
 import pytest
 import respx
+from mcp import Client
 
 from hn_tech_signal_mcp import server
 from tests.fixture_data import (
@@ -179,6 +180,18 @@ async def _fahre(name: str) -> str:
     """Ruft ein Werkzeug mit der Eingabe aus der Tabelle."""
     werkzeug, klasse, eingabe = WERKZEUGE[name]
     return await getattr(server, werkzeug)(getattr(server, klasse)(**eingabe))
+
+
+async def _fahre_ueber_das_sdk(werkzeug: str, eingabe: dict[str, Any], mode: str) -> Any:
+    """Derselbe Aufruf, aber durch die SDK-Schicht, die ein Client sieht.
+
+    `_fahre` ruft die Python-Funktion und bekommt den Text. `structuredContent`,
+    `outputSchema`-Validierung und `isError` entstehen erst im Adapter, den
+    `_tool` beim SDK registriert — an der Funktion selbst ist davon nichts zu
+    sehen.
+    """
+    async with Client(server.server, mode=mode) as client:
+        return await client.call_tool(werkzeug, {"params": eingabe})
 
 
 # --------------------------------------------------------------------------
@@ -340,6 +353,42 @@ async def test_jedes_werkzeug_liest_seine_aufgezeichnete_antwort(quelle, aufnahm
     assert ergebnis.strip(), f"{name} liefert nichts"
     assert not ergebnis.startswith("["), f"{name} meldet einen Fehler: {ergebnis[:200]}"
     assert quelle, f"{name} hat gar keine Anfrage abgeschickt"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mode", ["2026-07-28", "legacy"])
+@pytest.mark.parametrize("name", sorted(WERKZEUGE))
+async def test_jedes_werkzeug_liefert_seine_antwort_strukturiert(
+    quelle, aufnahmezeitpunkt, name, mode
+):
+    """Echte Antworten gegen das `outputSchema`, in beiden Aeren.
+
+    Die handgeschriebenen Stubs koennen das Schema nicht widerlegen: sie
+    enthalten nur, was ihr Autor fuer moeglich hielt. Die Aufzeichnungen tragen
+    die Nullwerte und Randfelder, die die Quelle tatsaechlich schickt — und das
+    SDK validiert `structuredContent` gegen das Modell, bevor das Resultat den
+    Server verlaesst. Ein Schema, das an einer echten Antwort scheitert, faellt
+    hier als `isError`.
+    """
+    werkzeug, _, eingabe = WERKZEUGE[name]
+    result = await _fahre_ueber_das_sdk(werkzeug, eingabe, mode)
+    text = result.content[0].text
+    assert not result.is_error, text[:300]
+    assert result.structured_content == json.loads(text)
+
+
+@pytest.mark.asyncio
+async def test_die_diskussion_liefert_ihren_baum_strukturiert(quelle):
+    """`hn_discussion` steht nicht in `WERKZEUGE` — die Story-ID kommt aus der
+    Aufzeichnung selbst. Der verschachtelte `replies`-Baum ist die eine
+    rekursive Form im Schema und verdient deshalb einen eigenen Lauf."""
+    story_id = _story_id_aus_der_aufzeichnung()
+    eingabe = {"story_id": story_id, "max_depth": 2, "max_comments": 5}
+    result = await _fahre_ueber_das_sdk("hn_discussion", eingabe, "2026-07-28")
+    assert not result.is_error, result.content[0].text[:300]
+    daten = result.structured_content
+    assert daten["story"]["id"] == story_id
+    assert daten["comments"], "der Baum ist leer — dann prueft der Test das Schema nicht"
 
 
 @pytest.mark.asyncio

@@ -223,7 +223,8 @@ hn-tech-signal-mcp/
 ├── src/
 │   └── hn_tech_signal_mcp/
 │       ├── __init__.py
-│       └── server.py          # All 8 tools
+│       ├── server.py          # All 8 tools
+│       └── outputs.py         # outputSchema models, one per tool
 ├── tests/
 │   ├── __init__.py
 │   └── test_server.py         # 64 unit + 12 live tests
@@ -277,6 +278,32 @@ that current clients actually negotiate free to drift.
 the spec changelog between the two revisions, verify the server still behaves,
 then move the constant, this section, `README.de.md` and
 [`CHANGELOG.md`](CHANGELOG.md) together.
+
+---
+
+## Tool Output
+
+Every tool declares its own `outputSchema` (closed: `additionalProperties:
+false`) from the models in `src/hn_tech_signal_mcp/outputs.py`, and answers in
+the three forms the spec separates:
+
+| Case | `content[0].text` | `structuredContent` | `isError` |
+|---|---|---|---|
+| Success | The JSON object, pretty-printed | The same object | `false` |
+| Source failed | `[Source] Error: …` | — | `true` |
+| Unknown or wrong ID (`hn_discussion`) | A sentence saying what to pass instead | — | `true` |
+| Digest with some sources down | The JSON object, with `degraded_sources` and a per-source `error` | The same object | `false` |
+
+Before, the SDK derived a schema of `{"result": string}` from the `-> str`
+annotation, so structured clients got the JSON as one string field, and every
+failure arrived as `isError: false`.
+
+The text stays byte-for-byte what it was — clients that only read text see no
+change. A response that does not fit its schema is reported as a server defect
+naming the offending field paths (never the values) instead of reaching the
+client unvalidated. The recorded fixtures and the daily live run both go
+through this path, in both protocol eras.
+
 
 ---
 

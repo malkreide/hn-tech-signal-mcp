@@ -20,6 +20,7 @@ Architecture:
 
 import asyncio
 import html
+import inspect
 import json
 import logging
 import os
@@ -27,11 +28,11 @@ import random
 import re
 import time
 from collections import OrderedDict
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 from urllib.parse import urlsplit
 from xml.etree.ElementTree import Element as _XmlElement
 
@@ -39,9 +40,20 @@ import httpx
 from defusedxml import ElementTree as _DefusedET
 from mcp.server.caching import CacheableMethod, CacheHint
 from mcp.server.mcpserver import MCPServer
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from . import __version__
+from .outputs import (
+    ArxivLatestOutput,
+    ArxivSearchOutput,
+    GithubTrendingOutput,
+    HnDiscussionOutput,
+    HnSearchOutput,
+    HnTopStoriesOutput,
+    LobstersHotOutput,
+    TechSignalDigestOutput,
+)
 
 logger = logging.getLogger("hn-tech-signal-mcp")
 
@@ -278,6 +290,103 @@ server = MCPServer(
     ),
     lifespan=_lifespan,
 )
+
+
+# ---------------------------------------------------------------------------
+# Structured output
+# ---------------------------------------------------------------------------
+#
+# Die acht Werkzeuge bauen ihr Ergebnis als JSON-Text, und dabei bleibt es:
+# Cache, Unit-Tests, Live-Tests und `scripts/classify_live_run.py` lesen genau
+# diesen Text, und die Fehler-Envelopes aus `_handle_error` sind daran
+# verankert. Umgebaut wird nur, was auf den Draht geht.
+#
+# Vorher meldete jedes Werkzeug ein `outputSchema` von `{"result": string}` —
+# das SDK leitet es aus der Annotation `-> str` ab. `structuredContent` war
+# damit ein Objekt mit einem einzigen Feld, in dem der eigentliche JSON-Text
+# als String steckte, und ein Fehler kam mit `isError: false` an: fuer den
+# Client ein Erfolg, dessen Inhalt zufaellig mit «Error:» beginnt.
+#
+# Jetzt registriert `_tool` beim SDK einen Adapter mit
+# `Annotated[CallToolResult, <Modell>]`: das Modell wird zum `outputSchema`,
+# das geparste Objekt zu `structuredContent`, der Text bleibt Byte fuer Byte
+# derselbe. Die Python-Funktion selbst bleibt unveraendert im Modul stehen —
+# wer sie direkt aufruft, bekommt weiter den Text.
+
+
+def _as_call_result(text: str, output: type[BaseModel] | None = None) -> CallToolResult:
+    """Text eines Werkzeugs → `CallToolResult`.
+
+    Die Unterscheidung haengt an einer Zusicherung, die dieser Server ohnehin
+    einhaelt und `test_structured_output.py` festhaelt: ein Erfolg ist IMMER
+    ein JSON-Objekt, ein Fehler NIE — `_handle_error` gibt eine nackte Zeile
+    zurueck, und `hn_discussion` meldet eine unbekannte oder falsche ID als
+    Satz. Alles, was sich nicht als Objekt lesen laesst, ist also ein Fehler,
+    den das Modell sehen und korrigieren soll: `isError: true`, ohne
+    `structuredContent` (die Spec verlangt es nur fuer Erfolge).
+
+    Mit `output` wird vorab gegen das Modell geprueft. Das SDK taete es auch,
+    aber es meldete einen Verstoss als rohe Pydantic-Ausgabe samt der
+    beanstandeten WERTE — Daten der Quelle im Fehlertext. Hier stehen nur die
+    Feldpfade, und das Log sagt, welches Werkzeug es war.
+    """
+    content = [TextContent(type="text", text=text)]
+    try:
+        data = json.loads(text)
+    except ValueError:
+        data = None
+    if not isinstance(data, dict):
+        return CallToolResult(content=content, is_error=True)
+    if output is not None:
+        try:
+            output.model_validate(data)
+        except ValidationError as exc:
+            felder = sorted({".".join(str(p) for p in err["loc"]) for err in exc.errors()})
+            logger.warning("Output of %s violates its schema at %s", output.__name__, felder)
+            return CallToolResult(
+                content=[
+                    TextContent(
+                        type="text",
+                        text=(
+                            "Error: the response did not match this tool's outputSchema "
+                            f"(fields: {', '.join(felder)}). This is a server defect, "
+                            "not a source outage — retrying will not help."
+                        ),
+                    )
+                ],
+                is_error=True,
+            )
+    return CallToolResult(content=content, structured_content=data)
+
+
+_ToolFn = Callable[[Any], Awaitable[str]]
+
+
+def _tool(
+    *, name: str, annotations: dict[str, Any], output: type[BaseModel]
+) -> Callable[[_ToolFn], _ToolFn]:
+    """Wie `@server.tool`, aber mit echtem `outputSchema` und `isError`.
+
+    Der Adapter uebernimmt Namen, Docstring und Parameter der Funktion; nur die
+    Rueckgabe-Annotation ersetzt er. Ueber `__signature__` statt ueber
+    `functools.wraps`: `wraps` setzt `__wrapped__`, und `inspect.signature`
+    folgte dann wieder der Original-Annotation `-> str`.
+    """
+
+    def register(fn: _ToolFn) -> _ToolFn:
+        async def adapter(params: Any) -> CallToolResult:
+            return _as_call_result(await fn(params), output)
+
+        adapter.__name__ = fn.__name__
+        adapter.__qualname__ = fn.__qualname__
+        adapter.__doc__ = fn.__doc__
+        adapter.__signature__ = inspect.signature(fn).replace(  # type: ignore[attr-defined]
+            return_annotation=Annotated[CallToolResult, output]
+        )
+        server.add_tool(adapter, name=name, annotations=ToolAnnotations(**annotations))
+        return fn
+
+    return register
 
 
 # ---------------------------------------------------------------------------
@@ -921,8 +1030,9 @@ class TechSignalDigestInput(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="hn_top_stories",
+    output=HnTopStoriesOutput,
     annotations={
         "title": "HackerNews Top/Best/New Stories",
         "readOnlyHint": True,
@@ -981,8 +1091,9 @@ async def hn_top_stories(params: HnTopStoriesInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="hn_search",
+    output=HnSearchOutput,
     annotations={
         "title": "HackerNews Full-Text Search (Algolia)",
         "readOnlyHint": True,
@@ -1057,8 +1168,9 @@ async def hn_search(params: HnSearchInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="hn_discussion",
+    output=HnDiscussionOutput,
     annotations={
         "title": "HackerNews Comment Thread",
         "readOnlyHint": True,
@@ -1151,8 +1263,9 @@ async def hn_discussion(params: HnDiscussionInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="arxiv_latest",
+    output=ArxivLatestOutput,
     annotations={
         "title": "arXiv Latest AI/ML Papers by Category",
         "readOnlyHint": True,
@@ -1242,8 +1355,9 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="arxiv_search",
+    output=ArxivSearchOutput,
     annotations={
         "title": "arXiv Full-Text Search",
         "readOnlyHint": True,
@@ -1299,8 +1413,9 @@ async def arxiv_search(params: ArxivSearchInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="lobsters_hot",
+    output=LobstersHotOutput,
     annotations={
         "title": "Lobste.rs Hottest Tech Stories",
         "readOnlyHint": True,
@@ -1371,8 +1486,9 @@ async def lobsters_hot(params: LobstersHotInput) -> str:
 # ---------------------------------------------------------------------------
 
 
-@server.tool(
+@_tool(
     name="github_trending_ai",
+    output=GithubTrendingOutput,
     annotations={
         "title": "GitHub Trending AI/Tech Repos",
         "readOnlyHint": True,
@@ -1491,8 +1607,9 @@ async def _fetch_digest_github(per_topic: int) -> tuple[list[dict], list[str]]:
     return list(merged.values()), failed
 
 
-@server.tool(
+@_tool(
     name="tech_signal_digest",
+    output=TechSignalDigestOutput,
     annotations={
         "title": "Aggregated Tech & AI Signal Digest",
         "readOnlyHint": True,
