@@ -1134,10 +1134,191 @@ ARXIV_FEED = """<?xml version="1.0" encoding="UTF-8"?>
     <published>2026-08-13T00:00:00Z</published>
     <author><name>A. Autorin</name></author>
     <arxiv:primary_category term="cs.AI"/>
+    <category term="cs.AI"/>
+    <category term="cs.LG"/>
     <link rel="alternate" href="http://arxiv.org/abs/2608.00001v1"/>
   </entry>
 </feed>
 """
+
+# Die `<category>`-Zeilen oben standen lange nicht im Stub, obwohl jede echte
+# Antwort sie fuehrt — nachgeprueft an `tests/fixtures/arxiv_latest_1.xml`, wo
+# ein Eintrag `stat.ML` UND `cs.LG` traegt. Ein Stub ohne sie kodiert die
+# Annahme, es gaebe nur die primaere Kategorie, und kann die Gruppierung der
+# OR-Abfrage darum nicht widerlegen.
+
+# Zwei Papers mit Kreuzeintrag, damit die Gruppierung ueberhaupt etwas zu
+# entscheiden hat: Das erste ist primaer cs.CL und fuehrt cs.AI nebenbei — die
+# Einzelabfrage `cat:cs.AI` haette es zurueckgegeben, eine Gruppierung nach der
+# primaeren Kategorie wuerde es unter cs.CL wegsortieren. Das zweite liegt nur
+# in cs.LG.
+ARXIV_FEED_GEMISCHT = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <entry>
+    <id>http://arxiv.org/abs/2609.00001v1</id>
+    <title>Kreuzeintrag: primaer cs.CL, nebenbei cs.AI</title>
+    <summary>Zusammenfassung eins.</summary>
+    <published>2026-09-27T00:00:00Z</published>
+    <author><name>B. Autor</name></author>
+    <arxiv:primary_category term="cs.CL"/>
+    <category term="cs.CL"/>
+    <category term="cs.AI"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2609.00001v1"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.00002v1</id>
+    <title>Nur cs.LG</title>
+    <summary>Zusammenfassung zwei.</summary>
+    <published>2026-09-26T00:00:00Z</published>
+    <author><name>C. Autorin</name></author>
+    <arxiv:primary_category term="cs.LG"/>
+    <category term="cs.LG"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2609.00002v1"/>
+  </entry>
+</feed>
+"""
+
+
+# Drei Papers in DERSELBEN Kategorie — eigener Feed, damit der Kuerzungstest
+# ueberhaupt etwas zu kuerzen hat. Mit `ARXIV_FEED_GEMISCHT` (ein cs.CL-Paper)
+# blieb `test_arxiv_latest_kuerzt_auf_limit` gruen, auch wenn man das `[:limit]`
+# im Server entfernte — er prueffte also nichts.
+ARXIV_FEED_DREI_IN_EINER = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <entry>
+    <id>http://arxiv.org/abs/2609.10001v1</id>
+    <title>Erstes cs.CL</title>
+    <summary>Eins.</summary>
+    <published>2026-09-27T00:00:00Z</published>
+    <author><name>D. Autor</name></author>
+    <arxiv:primary_category term="cs.CL"/>
+    <category term="cs.CL"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2609.10001v1"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.10002v1</id>
+    <title>Zweites cs.CL</title>
+    <summary>Zwei.</summary>
+    <published>2026-09-26T00:00:00Z</published>
+    <author><name>E. Autorin</name></author>
+    <arxiv:primary_category term="cs.CL"/>
+    <category term="cs.CL"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2609.10002v1"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.10003v1</id>
+    <title>Drittes cs.CL</title>
+    <summary>Drei.</summary>
+    <published>2026-09-25T00:00:00Z</published>
+    <author><name>F. Autor</name></author>
+    <arxiv:primary_category term="cs.CL"/>
+    <category term="cs.CL"/>
+    <link rel="alternate" href="http://arxiv.org/abs/2609.10003v1"/>
+  </entry>
+</feed>
+"""
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_arxiv_latest_stellt_genau_eine_anfrage():
+    """Sechs Kategorien, EINE Anfrage — der Grund fuer den ganzen Umbau.
+
+    Gemessen am 15.9.2026: `arxiv_latest` faecherte mit `asyncio.gather` eine
+    Anfrage je Kategorie auf, und der Aufruf ueber alle sechs AI-Kategorien —
+    eine dokumentierte, gueltige Eingabe — kam als «Rate limit exceeded» mit
+    null Papers zurueck. arXiv bittet im API-Handbuch um drei Sekunden Abstand
+    zwischen Aufrufen; sechs mal drei Sekunden passen nicht in das Zeitfenster
+    des MCP-Clients. Eine Anfrage braucht keinen Abstand.
+    """
+    from hn_tech_signal_mcp import server as srv
+
+    route = respx.get(url__startswith=srv.ARXIV_BASE_URL).mock(
+        return_value=httpx.Response(200, text=ARXIV_FEED_GEMISCHT)
+    )
+    result = await srv.arxiv_latest(
+        srv.ArxivLatestInput(categories=srv.ARXIV_AI_CATEGORIES, limit=2)
+    )
+    assert json.loads(result)["categories"] == srv.ARXIV_AI_CATEGORIES
+    assert route.call_count == 1, f"{route.call_count} Anfragen statt einer"
+    # Und es ist wirklich die OR-Form, nicht sechsmal dieselbe Einzelabfrage.
+    gestellt = str(route.calls[0].request.url)
+    assert "OR" in gestellt, gestellt
+    for kat in srv.ARXIV_AI_CATEGORIES:
+        assert f"cat%3A{kat}" in gestellt or f"cat:{kat}" in gestellt, gestellt
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_arxiv_latest_gruppiert_nach_allen_kategorien_nicht_nur_der_primaeren():
+    """Ein Kreuzeintrag gehoert unter BEIDE Kategorien.
+
+    `cat:cs.AI` trifft in arXiv jedes Paper, das cs.AI irgendwo fuehrt. Die
+    alte Einzelabfrage gab ein Paper mit primaer cs.CL und Nebeneintrag cs.AI
+    also unter cs.AI zurueck. Wer die OR-Antwort nach der primaeren Kategorie
+    gruppiert, sortiert es unter cs.CL weg — dieselbe Menge Anfragen gespart,
+    aber eine andere Auswahl geliefert. Nachgeprueft an
+    `tests/fixtures/arxiv_latest_1.xml`, wo ein Eintrag `stat.ML` und `cs.LG`
+    zugleich traegt.
+    """
+    from hn_tech_signal_mcp import server as srv
+
+    respx.get(url__startswith=srv.ARXIV_BASE_URL).mock(
+        return_value=httpx.Response(200, text=ARXIV_FEED_GEMISCHT)
+    )
+    data = json.loads(
+        await srv.arxiv_latest(
+            srv.ArxivLatestInput(categories=["cs.AI", "cs.CL", "cs.LG"], limit=5)
+        )
+    )
+    titel = {k: [p["title"] for p in v] for k, v in data["by_category"].items()}
+    kreuz = "Kreuzeintrag: primaer cs.CL, nebenbei cs.AI"
+    assert kreuz in titel["cs.AI"], titel
+    assert kreuz in titel["cs.CL"], titel
+    assert titel["cs.LG"] == ["Nur cs.LG"], titel
+    # Zwei Papers, drei Zuordnungen — `distinct_papers` zaehlt die Papers.
+    assert data["distinct_papers"] == 2, data
+    assert data["total_papers"] == 3, data
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_arxiv_latest_weist_eine_duenne_kategorie_aus():
+    """Weniger als bestellt wird benannt, nicht verschwiegen.
+
+    Eine OR-Abfrage holt die neuesten N ueber ALLE Kategorien. Eine kleine
+    Kategorie kann darin unter `limit` bleiben, obwohl arXiv mehr haette. Ohne
+    Hinweis haelt das Modell die kurze Liste fuer den Bestand der Quelle —
+    dieselbe Klasse Fehler wie ein Server, der still unvollstaendig liefert.
+    """
+    from hn_tech_signal_mcp import server as srv
+
+    respx.get(url__startswith=srv.ARXIV_BASE_URL).mock(
+        return_value=httpx.Response(200, text=ARXIV_FEED_GEMISCHT)
+    )
+    data = json.loads(
+        await srv.arxiv_latest(srv.ArxivLatestInput(categories=["cs.AI", "cs.NE"], limit=3))
+    )
+    # cs.AI hat 1 von 3, cs.NE gar nichts — beide sind duenn.
+    assert data["incomplete_categories"] == ["cs.AI", "cs.NE"], data
+    assert "arXiv may hold more" in data["note"]
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_arxiv_latest_kuerzt_auf_limit():
+    """`limit` bleibt eine Obergrenze je Kategorie, auch aus einer Abfrage."""
+    from hn_tech_signal_mcp import server as srv
+
+    respx.get(url__startswith=srv.ARXIV_BASE_URL).mock(
+        return_value=httpx.Response(200, text=ARXIV_FEED_DREI_IN_EINER)
+    )
+    data = json.loads(await srv.arxiv_latest(srv.ArxivLatestInput(categories=["cs.CL"], limit=1)))
+    # Drei da, eines bestellt — sonst kann der Test die Kuerzung nicht widerlegen.
+    assert [p["title"] for p in data["by_category"]["cs.CL"]] == ["Erstes cs.CL"], data
+    assert data["total_papers"] == 1, data
+    # Voll geliefert, also kein Hinweis — die Gegenrichtung zum Test darueber.
+    assert "incomplete_categories" not in data, data
 
 
 def _repo(full_name: str, topics: list[str] | None = None) -> dict:

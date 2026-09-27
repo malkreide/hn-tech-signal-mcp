@@ -1,10 +1,30 @@
 {
-  "by": "AlexeyBrin",
-  "descendants": 0,
-  "id": 49309923,
-  "score": 20,
-  "time": 1786795584,
-  "title": "T3X/0 a Minimal Procedural Language",
+  "by": "kspacewalk2",
+  "descendants": 60,
+  "id": 49862809,
+  "kids": [
+    49863992,
+    49863357,
+    49863315,
+    49864394,
+    49864087,
+    49865021,
+    49863356,
+    49863224,
+    49863505,
+    49864417,
+    49863197,
+    49865005,
+    49865192,
+    49863071,
+    49863050,
+    49863734,
+    49863317,
+    49863989
+  ],
+  "score": 178,
+  "time": 1790476826,
+  "title": "What is the size of Yemen? (2024)",
   "type": "story",
-  "url": "https://t3x.org/t3x/0/index.html"
+  "url": "https://theborys.substack.com/p/what-is-the-size-of-yemen"
 }

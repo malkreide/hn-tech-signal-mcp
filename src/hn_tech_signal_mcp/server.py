@@ -664,6 +664,14 @@ def _parse_arxiv_entry(entry: _XmlElement, ns: str) -> dict:
     pdf_el = entry.find(f"{ns}link[@title='pdf']")
     cat_el = entry.find("{http://arxiv.org/schemas/atom}primary_category")
 
+    # ALLE Kategorien, nicht bloss die primäre. `cat:cs.AI` trifft in arXiv
+    # jedes Paper, das cs.AI irgendwo führt — auch als Nebenkategorie. Wer eine
+    # OR-Abfrage nach der primären Kategorie gruppiert, ordnet ein Paper mit
+    # primär cs.CL und Nebeneintrag cs.AI unter cs.CL ein, obwohl die
+    # Einzelabfrage `cat:cs.AI` es zurückgegeben hätte. Ohne diese Liste ist die
+    # Gruppierung deshalb nicht dieselbe Auswahl, nur schneller.
+    alle_kategorien = [c.get("term", "") for c in entry.findall(f"{ns}category") if c.get("term")]
+
     return {
         "id": t("id").split("/abs/")[-1],
         "title": t("title").replace("\n", " "),
@@ -671,9 +679,55 @@ def _parse_arxiv_entry(entry: _XmlElement, ns: str) -> dict:
         "authors": authors,
         "published": t("published")[:10],
         "category": cat_el.get("term", "") if cat_el is not None else "",
+        "categories": alle_kategorien,
         "url": link_el.get("href", t("id")) if link_el is not None else t("id"),
         "pdf": pdf_el.get("href", "") if pdf_el is not None else "",
     }
+
+
+# Wie viele Papers eine OR-Abfrage holt, um `limit` je Kategorie füllen zu
+# können. Eine OR-Abfrage liefert `max_results` Papers INSGESAMT, nach
+# Einreichungsdatum sortiert — nicht `limit` je Kategorie. Der Faktor kauft
+# Spielraum für die kleinen Kategorien.
+#
+# Gemessen am 27.9.2026, eine Abfrage über alle sechs AI-Kategorien,
+# `max_results=200`, Zuordnung über ALLE Kategorienennungen je Paper:
+#
+#   cs.AI 95   cs.LG 68   cs.CL 53   cs.CV 51   cs.NE 6   stat.ML 11
+#
+# Und null Papers ohne eine der angefragten Kategorien — die Gruppierung
+# verliert also nichts. Das Verhältnis ist der Grund für beide Zahlen unten:
+# Bei den grossen vier trägt schon ein kleines Fenster, cs.NE dagegen stellt
+# rund 3 % der Neuzugänge. Ein `limit`, das darüber hinausgeht, ist aus einer
+# Abfrage nicht zu füllen — deshalb weist `arxiv_latest` solche Kategorien als
+# `incomplete_categories` aus, statt stillschweigend weniger zu liefern.
+#
+# Die Spec erlaubt bis 2000 je Aufruf («in slices of at most 2000 at a time»),
+# die Obergrenze hier ist also eine Frage der Antwortgrösse, nicht der Quelle:
+# 400 Einträge sind der Punkt, an dem eine Anfrage noch klar billiger ist als
+# sechs, aber nicht ein Megabyte für drei angezeigte Papers herunterlädt.
+ARXIV_OVERFETCH = 6
+ARXIV_MAX_RESULTS = 400
+
+
+def _arxiv_or_query(categories: list[str]) -> str:
+    """Die Kategorien zu EINER Abfrage verbinden statt je eine zu schicken.
+
+    arXiv nennt den Operator in seinem API-Handbuch («The following table lists
+    the three possible Boolean operators. AND OR ANDNOT»), und
+    `tech_signal_digest` fährt diese Form seit je — sie ist hier also erprobt
+    und nicht neu.
+
+    Der Grund für den Umbau steht im Gegenteil: `arxiv_latest` fächerte mit
+    `asyncio.gather` eine Anfrage je Kategorie auf. Gemessen am 15.9.2026 hiess
+    das für die dokumentierte Eingabe «alle sechs AI-Kategorien» sechs Anfragen
+    zugleich — und die Antwort war «Rate limit exceeded» mit null Papers. arXiv
+    bittet ausdrücklich um Abstand («we encourage you to play nice and
+    incorporate a 3 second delay in your code»); sechs mal drei Sekunden passen
+    aber nicht in das Zeitfenster, das der MCP-Client zugesteht. Eine Anfrage
+    braucht keinen Abstand.
+    """
+    return " OR ".join(f"cat:{c}" for c in categories)
 
 
 async def _fetch_arxiv(search_query: str, limit: int) -> list[dict]:
@@ -1116,33 +1170,67 @@ async def arxiv_latest(params: ArxivLatestInput) -> str:
     Categories: cs.AI (Artificial Intelligence), cs.LG (Machine Learning),
     cs.CL (NLP), cs.CV (Computer Vision), cs.NE (Neural Computing), stat.ML.
 
+    All categories are fetched in ONE query (`cat:A OR cat:B OR …`), so the
+    result is the most recent papers across the requested categories, grouped
+    per category. A paper cross-listed to several requested categories appears
+    under each of them, matching how a single-category query would return it.
+
+    Because one window is shared, a small category (cs.NE, stat.ML) can come
+    back with fewer than `limit` papers even though arXiv holds more. Those
+    categories are named in `incomplete_categories` — query a single category
+    for full depth.
+
     Args:
         params (ArxivLatestInput):
             - categories (List[str]): arXiv category codes
-            - limit (int): Papers per category (1–20)
+            - limit (int): Max papers per category (1–20)
 
     Returns:
-        str: JSON with categories, total_papers, by_category dict.
-             Each paper: id, title, abstract (400 chars), authors, published, url, pdf.
+        str: JSON with categories, total_papers, distinct_papers, by_category
+             dict, and — only when a category fell short — incomplete_categories
+             plus an explanatory note.
+             Each paper: id, title, abstract (400 chars), authors, published,
+             category (primary), categories (all), url, pdf.
     """
     cache_key = f"arxiv_latest|{'_'.join(sorted(params.categories))}|{params.limit}"
     if cached := _cache_get(cache_key, "arxiv"):
         return cached
     try:
-        results_raw = await asyncio.gather(
-            *[_fetch_arxiv(f"cat:{c}", params.limit) for c in params.categories]
-        )
-        by_category = {cat: papers for cat, papers in zip(params.categories, results_raw)}
-        result = json.dumps(
-            {
-                "fetched_at": _now_iso(),
-                "categories": params.categories,
-                "total_papers": sum(len(p) for p in by_category.values()),
-                "by_category": by_category,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
+        # EINE Anfrage für alle Kategorien. Vorher eine je Kategorie, per
+        # `asyncio.gather` gleichzeitig — siehe `_arxiv_or_query`.
+        gefordert = min(ARXIV_MAX_RESULTS, params.limit * len(params.categories) * ARXIV_OVERFETCH)
+        alle = await _fetch_arxiv(_arxiv_or_query(params.categories), gefordert)
+
+        # Gruppiert nach ALLEN Kategorien eines Papers, nicht nach der primären:
+        # `cat:cs.AI` hätte das Paper auch als Nebeneintrag zurückgegeben, und
+        # ein Paper durfte schon vorher unter zwei Kategorien auftauchen.
+        by_category = {
+            cat: [p for p in alle if cat in p["categories"]][: params.limit]
+            for cat in params.categories
+        }
+
+        # Die Fensterkante benennen, statt sie zu verschweigen. Eine OR-Abfrage
+        # holt die neuesten N ÜBER ALLE Kategorien; eine kleine Kategorie kann
+        # darin weniger als `limit` Treffer haben, obwohl arXiv mehr hätte. Wer
+        # das nicht ausweist, liefert stillschweigend weniger als bestellt — und
+        # das Modell hält die kurze Liste für den Bestand der Quelle.
+        duenn = sorted(cat for cat, papers in by_category.items() if len(papers) < params.limit)
+        nutzlast: dict[str, Any] = {
+            "fetched_at": _now_iso(),
+            "categories": params.categories,
+            "total_papers": sum(len(p) for p in by_category.values()),
+            "distinct_papers": len({p["id"] for p in alle}),
+            "by_category": by_category,
+        }
+        if duenn:
+            nutzlast["incomplete_categories"] = duenn
+            nutzlast["note"] = (
+                f"Fetched the {len(alle)} most recent papers across all requested "
+                f"categories in one query. {', '.join(duenn)} returned fewer than "
+                f"limit={params.limit} within that window — arXiv may hold more. "
+                "Query a single category for full depth."
+            )
+        result = json.dumps(nutzlast, indent=2, ensure_ascii=False)
         _cache_set(cache_key, result)
         return result
     except Exception as e:

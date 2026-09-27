@@ -1,11 +1,12 @@
 {
-  "by": "Alien1Being",
-  "id": 49312247,
+  "by": "ForHackernews",
+  "id": 49865546,
   "kids": [
-    49312454
+    49865583,
+    49865579
   ],
-  "parent": 49311651,
-  "text": "&quot;Semaglutide attenuates a proteomics-based dementia risk signature &quot;<p>ie : clinically meaningless.<p>The company behind this, Novo Nordisk is increasingly desperate, as tirzepatide destroys the semaglutide revenue stream and the consequent job losses decimate the company",
-  "time": 1786813421,
+  "parent": 49865343,
+  "text": "In my view, these models should never be trained to output first-person &quot;experiential&quot; (from the abstract) language. It&#x27;s too easy to humans to anthropomorphize software that presents itself as having an identity.<p>The AI companies have chosen to package LLMs as friendly chatbots because they know that will be engaging for humans, but it&#x27;s manipulative. An honest LLM interface would sound like the computer off Star Trek.",
+  "time": 1790506674,
   "type": "comment"
 }

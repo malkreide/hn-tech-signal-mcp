@@ -1,14 +1,24 @@
 {
-  "by": "Jimmc414",
-  "descendants": 2,
-  "id": 49306333,
+  "by": "momentmaker",
+  "descendants": 26,
+  "id": 49832768,
   "kids": [
-    49311624,
-    49306346
+    49859773,
+    49862762,
+    49859789,
+    49833549,
+    49860132,
+    49863039,
+    49859295,
+    49859403,
+    49860754,
+    49862348,
+    49859284,
+    49864507
   ],
-  "score": 20,
-  "time": 1786754161,
-  "title": "2D Gaussian Splatting for Bézier Spline Line Art Vectorization",
+  "score": 176,
+  "time": 1790266302,
+  "title": "A searchable library of forgotten public-domain film clips from 1915 onward",
   "type": "story",
-  "url": "https://studios.disneyresearch.com/2026/07/16/2d-gaussian-splatting-for-bezier-spline-line-art-vectorization/"
+  "url": "https://www.movingimagearchive.com/"
 }

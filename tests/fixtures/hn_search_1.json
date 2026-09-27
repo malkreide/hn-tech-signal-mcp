@@ -11,7 +11,7 @@
         "author": {
           "matchLevel": "none",
           "matchedWords": [],
-          "value": "tosh"
+          "value": "nonmaskable"
         },
         "title": {
           "fullyHighlighted": false,
@@ -19,7 +19,7 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "Claude Code uses Bun written in <em>Rust</em> now"
+          "value": "Nvidia announces native GPU programming in <em>Rust</em>"
         },
         "url": {
           "fullyHighlighted": false,
@@ -27,36 +27,36 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-<em>rust</em>/"
+          "value": "https://developer.nvidia.com/blog/introducing-cuda-<em>rust</em>-two-tracks-for-writing-gpu-kernels/"
         }
       },
       "_tags": [
         "story",
-        "author_tosh",
-        "story_48966569"
+        "author_nonmaskable",
+        "story_49724881"
       ],
-      "author": "tosh",
+      "author": "nonmaskable",
       "children": [
-        48966727,
-        48966731,
-        48966784
+        49724907,
+        49725272,
+        49733856
       ],
-      "created_at": "2026-07-19T10:03:23Z",
-      "created_at_i": 1784455403,
-      "num_comments": 853,
-      "objectID": "48966569",
-      "points": 608,
-      "story_id": 48966569,
-      "title": "Claude Code uses Bun written in Rust now",
-      "updated_at": "2026-08-12T06:24:13Z",
-      "url": "https://simonwillison.net/2026/Jul/19/claude-code-in-bun-in-rust/"
+      "created_at": "2026-09-16T11:15:53Z",
+      "created_at_i": 1789557353,
+      "num_comments": 404,
+      "objectID": "49724881",
+      "points": 970,
+      "story_id": 49724881,
+      "title": "Nvidia announces native GPU programming in Rust",
+      "updated_at": "2026-09-27T07:24:32Z",
+      "url": "https://developer.nvidia.com/blog/introducing-cuda-rust-two-tracks-for-writing-gpu-kernels/"
     },
     {
       "_highlightResult": {
         "author": {
           "matchLevel": "none",
           "matchedWords": [],
-          "value": "tomlockwood"
+          "value": "mmastrac"
         },
         "title": {
           "fullyHighlighted": false,
@@ -64,7 +64,7 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "How is the Bun rewrite in <em>Rust</em> going?"
+          "value": "<em>Rust</em> is tier-1 language at Microsoft"
         },
         "url": {
           "fullyHighlighted": false,
@@ -72,39 +72,36 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "https://lockwood.dev/ai/2026/07/27/how-is-the-bun-rewrite-in-<em>rust</em>-going.html"
+          "value": "https://<em>rust</em>foundation.org/media/guest-post-<em>rust</em>-is-tier-1-language-at-microsoft/"
         }
       },
       "_tags": [
         "story",
-        "author_tomlockwood",
-        "story_49067854"
+        "author_mmastrac",
+        "story_49643546"
       ],
-      "author": "tomlockwood",
+      "author": "mmastrac",
       "children": [
-        49068218,
-        49068234,
-        49068255
+        49644105,
+        49644131,
+        49644176
       ],
-      "created_at": "2026-07-27T11:12:26Z",
-      "created_at_i": 1785150746,
-      "num_comments": 385,
-      "objectID": "49067854",
-      "points": 496,
-      "story_id": 49067854,
-      "title": "How is the Bun rewrite in Rust going?",
-      "updated_at": "2026-08-13T22:17:49Z",
-      "url": "https://lockwood.dev/ai/2026/07/27/how-is-the-bun-rewrite-in-rust-going.html"
+      "created_at": "2026-09-10T13:39:16Z",
+      "created_at_i": 1789047556,
+      "num_comments": 517,
+      "objectID": "49643546",
+      "points": 730,
+      "story_id": 49643546,
+      "title": "Rust is tier-1 language at Microsoft",
+      "updated_at": "2026-09-27T06:42:00Z",
+      "url": "https://rustfoundation.org/media/guest-post-rust-is-tier-1-language-at-microsoft/"
     },
     {
       "_highlightResult": {
         "author": {
-          "fullyHighlighted": false,
-          "matchLevel": "full",
-          "matchedWords": [
-            "rust"
-          ],
-          "value": "<em>rust</em>desk"
+          "matchLevel": "none",
+          "matchedWords": [],
+          "value": "vinhnx"
         },
         "title": {
           "fullyHighlighted": false,
@@ -112,48 +109,45 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "<em>Rust</em>Desk now supports true unattended remote access on Wayland"
+          "value": "Reverse engineering my e-scooter and rewriting the firmware in <em>Rust</em>"
         },
         "url": {
-          "fullyHighlighted": false,
-          "matchLevel": "full",
-          "matchedWords": [
-            "rust"
-          ],
-          "value": "https://<em>rust</em>desk.com/blog/unattended-remote-access-wayland/"
+          "matchLevel": "none",
+          "matchedWords": [],
+          "value": "https://bensimms.moe/reverse-engineering-scooter/"
         }
       },
       "_tags": [
         "story",
-        "author_rustdesk",
-        "story_49300759"
+        "author_vinhnx",
+        "story_49638071"
       ],
-      "author": "rustdesk",
+      "author": "vinhnx",
       "children": [
-        49301261,
-        49301284,
-        49301321
+        49638434,
+        49683174,
+        49683662
       ],
-      "created_at": "2026-08-14T16:12:52Z",
-      "created_at_i": 1786723972,
-      "num_comments": 139,
-      "objectID": "49300759",
-      "points": 329,
-      "story_id": 49300759,
-      "title": "RustDesk now supports true unattended remote access on Wayland",
-      "updated_at": "2026-08-15T17:28:56Z",
-      "url": "https://rustdesk.com/blog/unattended-remote-access-wayland/"
+      "created_at": "2026-09-10T03:32:04Z",
+      "created_at_i": 1789011124,
+      "num_comments": 105,
+      "objectID": "49638071",
+      "points": 452,
+      "story_id": 49638071,
+      "title": "Reverse engineering my e-scooter and rewriting the firmware in Rust",
+      "updated_at": "2026-09-26T23:18:30Z",
+      "url": "https://bensimms.moe/reverse-engineering-scooter/"
     }
   ],
   "hitsPerPage": 3,
-  "nbHits": 13630,
+  "nbHits": 13364,
   "nbPages": 334,
   "page": 0,
-  "params": "query=rust&hitsPerPage=3&numericFilters=created_at_i%3E1784223095&advancedSyntax=true&analyticsTags=backend",
-  "processingTimeMS": 4,
+  "params": "query=rust&hitsPerPage=3&numericFilters=created_at_i%3E1787915165&advancedSyntax=true&analyticsTags=backend",
+  "processingTimeMS": 5,
   "processingTimingsMS": {
     "_request": {
-      "roundTrip": 17
+      "roundTrip": 13
     },
     "fetch": {
       "query": 1,

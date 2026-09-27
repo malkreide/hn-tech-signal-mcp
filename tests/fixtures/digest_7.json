@@ -1,13 +1,17 @@
 {
-  "by": "speckx",
-  "descendants": 1,
-  "id": 49276353,
+  "by": "geox",
+  "descendants": 35,
+  "id": 49852905,
   "kids": [
-    49311192
+    49863094,
+    49863017,
+    49862093,
+    49852973,
+    49864724
   ],
-  "score": 10,
-  "time": 1786557793,
-  "title": "A Planet Position Widget",
+  "score": 62,
+  "time": 1790393011,
+  "title": "Promising discoveries about the potential for life on one of Saturn’s icy moons",
   "type": "story",
-  "url": "https://leancrew.com/all-this/2026/08/a-planet-position-widget/"
+  "url": "https://www.fu-berlin.de/en/presse/informationen/fup/2026/fup_26_116-enceladus-cassini-mikroben-science-postberg/index.html"
 }

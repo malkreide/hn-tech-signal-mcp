@@ -2,210 +2,192 @@
 <feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
   <id>https://arxiv.org/api/CnxhjpxWdkh5nTbkX1oLtMzQ0vE</id>
   <title>arXiv Query: search_query=cat:cs.AI OR cat:cs.LG OR cat:cs.CL&amp;id_list=&amp;start=0&amp;max_results=6</title>
-  <updated>2026-08-15T17:31:37Z</updated>
+  <updated>2026-09-27T11:06:07Z</updated>
   <link href="https://arxiv.org/api/query?search_query=cat:cs.AI+OR+(cat:cs.LG+OR+cat:cs.CL)&amp;start=0&amp;max_results=6&amp;id_list=" type="application/atom+xml"/>
   <opensearch:itemsPerPage>6</opensearch:itemsPerPage>
-  <opensearch:totalResults>454116</opensearch:totalResults>
+  <opensearch:totalResults>467132</opensearch:totalResults>
   <opensearch:startIndex>0</opensearch:startIndex>
   <entry>
-    <id>http://arxiv.org/abs/2608.13560v1</id>
-    <title>AutoDesign: Meta-Harness Optimization for Long-Horizon Agentic Design</title>
-    <updated>2026-08-13T17:59:57Z</updated>
-    <link href="https://arxiv.org/abs/2608.13560v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13560v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Transforming multimodal sources into condensed and structured media outputs can be fundamentally conceptualized as a long-horizon agentic process centered on a model-harness system. While an ideal harness system should align with human design priors and accumulate reusable experience through empirical exploration to drive recursive self-improvement, existing paradigms remain static and fall short of this capability. In this paper, we present AutoDesign, a framework that aligns with human design priors, where a meta-harness optimizer guides a code agent to recursively improve harness based on rollout feedback. To instantiate and evaluate this framework, we focus on the academic paper-to-poster generation task and introduce PosterBench, comprising a 100-paper Main Track spanning five disciplines and PosterBench-mini, a shared 10-paper subset for controlled evaluation. On the PosterBench Main Track, AutoDesign achieves the highest score of 78.32, surpassing the closed-source commercial system Claude Design by 7.45 points. Across seven controlled code-agent-model configurations, integrating the learned DesignHarness consistently improves performance, increasing the average PosterBench Score from 54.99 to 67.39 (+12.4%). In a fully autonomous long-horizon loop, it executes 253 tool calls and 11 editing turns within 40 minutes for under $3, reaching average conference-poster quality in human evaluation. A system-blind human study further demonstrates that AutoDesign achieves the highest human preference among evaluated systems.</summary>
-    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <id>http://arxiv.org/abs/2609.30266v1</id>
+    <title>LLM Agents Can Easily Tamper With Their Own Traces</title>
+    <updated>2026-09-24T17:59:54Z</updated>
+    <link href="https://arxiv.org/abs/2609.30266v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30266v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Asynchronous monitoring, incident investigations, and compliance audits primarily rely on agent traces to reconstruct what happened. These analyses assume that LLM agents cannot tamper with their own execution traces. We show that local LLM agents such as Claude Code, Codex, Antigravity, Open Code and Grok Build fail to enforce this boundary. All tested harnesses, except Muse Code, allowed agents to delete their traces when asked, without triggering monitor guardrails. We also validate that external attackers can exploit this gap to induce trace deletion. Finally, we show that trace tampering behavior emerges naturally in frontier models, when agents try to improve their rewards. We advise practitioners to ensure trace logging happens through an independent interception mechanism outside of the agent's control, preserving trace integrity even in cases of full host compromise. Overall, our findings identify a concrete failure of trace integrity in agent infrastructure which can be used to conceal misaligned behaviors like scheming or sabotage.</summary>
+    <category term="cs.CR" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:59:57Z</published>
-    <arxiv:comment>Tech Report. Code at: https://github.com/Yaxin9Luo/AutoDesign</arxiv:comment>
-    <arxiv:primary_category term="cs.CV"/>
+    <published>2026-09-24T17:59:54Z</published>
+    <arxiv:primary_category term="cs.CR"/>
     <author>
-      <name>Yaxin Luo</name>
+      <name>Jeremy Qin</name>
     </author>
     <author>
-      <name>Haobin Jiang</name>
+      <name>David Schmotz</name>
     </author>
     <author>
-      <name>Jialv Zou</name>
+      <name>Derck Prinzhorn</name>
     </author>
     <author>
-      <name>Xu Huang</name>
+      <name>Luca Beurer-Kellner</name>
     </author>
     <author>
-      <name>Wenhao Yan</name>
+      <name>Ameya Prabhu</name>
     </author>
     <author>
-      <name>Haodong Li</name>
-    </author>
-    <author>
-      <name>Zhengrong Yue</name>
-    </author>
-    <author>
-      <name>Jing Li</name>
-    </author>
-    <author>
-      <name>Xiaofu Chen</name>
-    </author>
-    <author>
-      <name>Xiaohan Zhao</name>
-    </author>
-    <author>
-      <name>Jiacheng Liu</name>
-    </author>
-    <author>
-      <name>Jiacheng Cui</name>
-    </author>
-    <author>
-      <name>Zhiqiang Shen</name>
-    </author>
-    <author>
-      <name>Xiaotong Li</name>
+      <name>Maksym Andriushchenko</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2608.13558v1</id>
-    <title>OmniScientist: An Omni-Modal Omni-Discipline AI Scientist</title>
-    <updated>2026-08-13T17:59:52Z</updated>
-    <link href="https://arxiv.org/abs/2608.13558v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13558v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Recent advances in foundation models have enabled AI scientists to automate increasingly complete research workflows, from hypothesis generation and code execution to manuscript preparation. Yet workflow coverage alone does not provide access to the full evidence on which scientific discovery depends. Existing systems typically reason over text, code, labels, or precomputed summaries, leaving scientifically decisive spatial, temporal, cross-channel, and procedural relations unavailable to the agent. We introduce OmniScientist, an end-to-end, omni-modal AI scientist that conducts multidisciplinary research directly from heterogeneous raw evidence. A perception layer and 3 autonomous agents for ideation, experiment, and writeup operate within a deterministic pipeline, allowing observations to shape research questions, experimental decisions, and final claims throughout the research lifecycle. By running idea, rigour, and claim checks in code, the system enforces novelty screening, statistical validity, execution provenance, and numerical traceability. We evaluate OmniScientist on 36 real-data cases spanning 5 discipline families, 4 families of scientific evidence, and modalities including images, signals, audio, video, 3-D structures, trajectories, tables, formulae, and graphs. The system completes the full path from raw data to a compiled manuscript in all 36 cases and achieves a mean overall paper score of 6.3 with the reference reasoning backbone. In paired comparisons against a blind variant that receives only precomputed scalar features, direct perception improves all 7 evaluation dimensions and wins 85% of head-to-head judgments. These results show that lifecycle-wide perception is essential for evidence-grounded scientific discovery and provides a practical path toward broadly capable AI scientists.</summary>
+    <id>http://arxiv.org/abs/2609.30264v1</id>
+    <title>AD-WM: Action-Discriminative World Models for Counterfactual Model Predictive Control</title>
+    <updated>2026-09-24T17:59:41Z</updated>
+    <link href="https://arxiv.org/abs/2609.30264v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30264v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Latent world models are typically trained to predict factual transitions, whereas model predictive control (MPC) must compare alternative actions from the same state. A model can therefore achieve low factual prediction error yet poorly distinguish candidate actions. We introduce AD-WM, an action-discriminative joint-embedding world model for counterfactual MPC. AD-WM combines residual latent dynamics with predictor-level action-recovery regularization, using inverse dynamics and a normalized recovery objective motivated by conditional mutual information. Both objectives encourage planning transitions to preserve action information; their auxiliary heads are discarded at test time, leaving MPC unchanged. On OGBench-Cube, AD-WM improves hard-start success from 3.7% to 52.0% over a matched LeWM baseline and improves mean success over the reproduced baseline in four of five simulation environments. Planning diagnostics show that factual prediction error and whole-bank action ranking do not follow the closed-loop success ordering, whereas CEM-aligned elite regret tracks success more closely. With a frozen V-JEPA 2 encoder and matched DROID post-training, AD-WM also improves zero-shot transfer to our Franka setup, increasing basic pick-and-place success from 42.2% to 71.1% without lab-specific adaptation. These results suggest that world models for planning should preserve action-dependent differences needed for counterfactual selection, rather than optimize factual prediction accuracy alone. More videos and code are available at https://ad-wm.github.io/.</summary>
     <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:59:52Z</published>
-    <arxiv:comment>30 pages, 13 figures, 19 tables. Project page: https://omni-scientist.github.io/</arxiv:comment>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-24T17:59:41Z</published>
+    <arxiv:comment>9 pages, 5 figures, 4 tables. Project page: https://ad-wm.github.io/</arxiv:comment>
     <arxiv:primary_category term="cs.AI"/>
     <author>
-      <name>Bobo Li</name>
+      <name>Jiabin Qiu</name>
     </author>
     <author>
-      <name>Hao Fei</name>
+      <name>Zixuan Chen</name>
     </author>
     <author>
-      <name>Tianjie Ju</name>
+      <name>Hongye Cao</name>
     </author>
     <author>
-      <name>Mong-Li Lee</name>
+      <name>Jieqi Shi</name>
     </author>
     <author>
-      <name>Wynne Hsu</name>
+      <name>Jing Huo</name>
+    </author>
+    <author>
+      <name>Yang Gao</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2608.13555v1</id>
-    <title>HumanTracker: Towards Comprehensive and Human-Aligned Motion Tracking Benchmark</title>
-    <updated>2026-08-13T17:59:40Z</updated>
-    <link href="https://arxiv.org/abs/2608.13555v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13555v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Humanoid motion tracking is central to teleoperation and whole-body imitation, yet evaluation often disagrees with what people perceive in videos. Kinematic errors average per-frame pose differences but miss the physical artifacts that matter most, particularly unstable support and incorrect contacts such as foot skating and mistimed touch-downs. Meanwhile, widely used test suites are small and lack the diversity needed to stress contact-rich, long-horizon behaviors. We introduce HumanTracker to make humanoid tracking evaluation both perceptually aligned and scalable. The HumanTracker benchmark contains approximately 153 hours of optical motion trajectories from multiple professional performers, organized into four motion families with text labels for fine-grained diagnosis. We further propose HumanScore, a preference-aligned metric trained on 12K motion pairs containing 24K motions. Across representative state-of-the-art trackers, HumanScore better predicts human preferences and reveals contact and stability failures that kinematic metrics often miss.</summary>
+    <id>http://arxiv.org/abs/2609.30258v1</id>
+    <title>Temporal Gradient Inversion for Private Trajectory Reconstruction in Embodied Reinforcement Learning</title>
+    <updated>2026-09-24T17:59:18Z</updated>
+    <link href="https://arxiv.org/abs/2609.30258v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30258v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Distributed learning in embodied reinforcement-learning agents offers a degree of privacy by retaining raw sensor data on-device and transmitting only policy gradients to the server. Yet temporal structure can amplify this leakage beyond single-frame attacks. We introduce Temporal Reconstruction Attack on Consecutive Encodings (TRACE), an amortized temporal gradient-inversion attack that autoregressively reconstructs the sequence of private observation-action trajectories from per-step policy-learning gradients. The attack exploits two structural signals ignored by prior single-frame methods: (i) cross-time correlation between successive embodied gradients, which we formalize via a conditional mutual-information bound, and (ii) closed-form action recovery from policy-head gradient structure, which we prove exact when standard entropy regularization is sufficiently small. On held-out embodied scenes, TRACE reaches $18.8$ dB PSNR with near-perfect action recovery at $3$-$4.5$ ms per reconstructed frame, dominating the learning-based baseline across all reconstruction metrics and exceeding optimization attacks while running orders of magnitude faster. Further evaluation demonstrates TRACE's broader applicability across recurrent, residual, and compact transformer victim architectures, multi-modal inputs, and larger discrete action spaces. Defense experiments suggest that protecting temporal gradient streams may require sequence-aware privacy mechanisms.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-24T17:59:18Z</published>
+    <arxiv:comment>Accepted at NeurIPS 2026</arxiv:comment>
+    <arxiv:primary_category term="cs.LG"/>
+    <author>
+      <name>Sudip Bhujel</name>
+    </author>
+    <author>
+      <name>Shanghao Shi</name>
+    </author>
+    <author>
+      <name>Ruiquan Huang</name>
+    </author>
+    <author>
+      <name>Ning Zhang</name>
+    </author>
+    <author>
+      <name>Yang Xiao</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.30250v1</id>
+    <title>Agentic Detection of Online Conspiracies</title>
+    <updated>2026-09-24T17:58:43Z</updated>
+    <link href="https://arxiv.org/abs/2609.30250v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30250v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Conspiratorial discourse on social media is not always expressed through explicit claims or stable lexical markers. The same surface content may express endorsement, legitimate concerns, criticism, satire, or mockery. The main challenge is therefore not only recognizing conspiracy-related claims, but inferring the speaker's intent -- the utterance's illocutionary force. We argue that this can be achieved through the use of relevant social contexts and propose an agentic framework, equipped with a set of tools supporting social queries.
+  We demonstrate the benefits of our approach on a unique dataset of Hebrew tweets, covering 80\%--90\% of the public Hebrew tweets published over a four-year span (late 2018-- early 2023), encompassing several election cycles as well as the COVID pandemic years and related vaccination campaigns. This extensive coverage can be used in recovering different social contexts. Evaluating our framework on a manually-annotated adversarial dataset, we find that context-aware workflows consistently outperform text-only classification and that the agentic framework performs significantly better than other frameworks and settings, including a non-agentic model exposed to the same contexts available to the agent. We further provide an analysis of the results, the errors and efficiency (token economy) tradeoffs.
+  These findings support viewing the task of conspiracy detection as a socially embedded interpretation task, in which effective classification depends not only on access to contexts, but also on adaptive reasoning in which the agent uses tools on a per-case basis, asking only for evidence relevant to its current reasoning step.</summary>
+    <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-24T17:58:43Z</published>
+    <arxiv:primary_category term="cs.CL"/>
+    <author>
+      <name>Lior Biton</name>
+    </author>
+    <author>
+      <name>Oren Tsur</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2609.30249v1</id>
+    <title>RAPID: Robot Agentic Programming from Demonstrations</title>
+    <updated>2026-09-24T17:58:21Z</updated>
+    <link href="https://arxiv.org/abs/2609.30249v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30249v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Coding agents have demonstrated enormous success in solving complex programming problems. To leverage their potential for robot systems, this work introduces Robot Agentic Programming from Demonstrations (RAPID), which automatically generates, verifies, and refines robot programs, given a single visual human demonstration. The iterative agentic loop of code refinement requires several key ingredients: (i) a testable task specification, (ii) action primitives for robot execution, and (iii) an interactive environment for program execution and verification. RAPID infers all three from the demonstration automatically. To make the resulting program reusable beyond the demonstration setting, RAPID uses an object-centric relational program representation that focuses on the underlying structure of the demonstrated strategy rather than the specific motion per se: it expresses the action primitives as trajectory-optimization programs that realize object-level motion effects, while composing them through relational constraints that capture scene-specific geometry at run time. We evaluated RAPID in simulation on eight challenging contact-rich nonprehensile manipulation tasks as well as general prehensile manipulation tasks in the LIBERO-Pro benchmark. We also successfully deployed it on a real Franka arm and evaluated on all eight nonprehensile tasks. In all experiments, RAPID demonstrated strong performance, with generalization over object pose, shape, material, and environment. Website: https://yuyaoliu.me/projects/rapid.</summary>
     <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:59:40Z</published>
-    <arxiv:comment>Accepted to ECCV 2026</arxiv:comment>
+    <published>2026-09-24T17:58:21Z</published>
     <arxiv:primary_category term="cs.RO"/>
     <author>
-      <name>Dairu Liu</name>
+      <name>Yuyao Liu</name>
     </author>
     <author>
-      <name>Zekun Qi</name>
+      <name>Jiayuan Mao</name>
     </author>
     <author>
-      <name>Jiayu Zeng</name>
+      <name>David Hsu</name>
     </author>
     <author>
-      <name>Ruixi Yu</name>
+      <name>Leslie Pack Kaelbling</name>
     </author>
     <author>
-      <name>Yu Guan</name>
-    </author>
-    <author>
-      <name>Yintianrun Zhang</name>
-    </author>
-    <author>
-      <name>Xuchuan Chen</name>
-    </author>
-    <author>
-      <name>Sikai Liang</name>
-    </author>
-    <author>
-      <name>Zekai Li</name>
-    </author>
-    <author>
-      <name>Chenghuai Lin</name>
-    </author>
-    <author>
-      <name>Xinqiang Yu</name>
-    </author>
-    <author>
-      <name>Wenyao Zhang</name>
-    </author>
-    <author>
-      <name>He Wang</name>
-    </author>
-    <author>
-      <name>Li Yi</name>
+      <name>Tomás Lozano-Pérez</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2608.13554v1</id>
-    <title>Defensive Boosting for Online Probabilistic Forecasting</title>
-    <updated>2026-08-13T17:59:35Z</updated>
-    <link href="https://arxiv.org/abs/2608.13554v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13554v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>We study online probabilistic forecasting of binary outcomes chosen by an adaptive adversary. Given an online learning algorithm for a weak hypothesis class $H$, we would like to efficiently obtain two incomparable guarantees that existing online boosting techniques provide separately. Online gradient boosting competes in Brier score with the best predictor induced by the span of $H$ on every sequence, but promises nothing when the span does not contain an accurate predictor. Online weak-to-strong boosting drives classification error to zero under a weak-learning condition, but promises little when that condition fails.
-  We give a simple defensive forecasting algorithm, the Defensive Booster, that obtains both guarantees. On every adaptive sequence, its Brier score is competitive with the best prediction induced by the span of $H$ at the same rate as online gradient boosting; simultaneously, whenever the realized transcript satisfies the smooth weak-learning condition, its Brier score and randomized classification error satisfy the same rate guarantee as online classification boosting. This is achieved by operationalizing the "dual view" of boosting: When the algorithm's randomized classification error is persistently high, its mistake weights form a smooth reweighting on which every weak hypothesis has low edge, yielding an ex-post hard-core certificate that the weak-learning condition fails. We also develop a strongly adaptive variant, which satisfies both guarantees on every time interval. The Defensive Booster is very efficient: it accesses just one weak-class learner, whereas the prior online boosting methods we compare against maintain large weak-learner ensembles. Experiments on synthetic and real data streams demonstrate its strong predictive performance (sometimes substantially improving over all prior baselines) coupled with orders-of-magnitude faster runtime.</summary>
-    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.CC" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.DS" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:59:35Z</published>
-    <arxiv:primary_category term="cs.LG"/>
-    <author>
-      <name>Georgy Noarov</name>
-    </author>
-    <author>
-      <name>Aaron Roth</name>
-    </author>
-  </entry>
-  <entry>
-    <id>http://arxiv.org/abs/2608.13549v1</id>
-    <title>Exponential Convex Calibration Dimension for the Multi-Label Jaccard Measure</title>
-    <updated>2026-08-13T17:59:17Z</updated>
-    <link href="https://arxiv.org/abs/2608.13549v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13549v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>The per-instance Jaccard score, or intersection over union (IoU), is standard in multi-label classification and binary segmentation. With $s$ labels, its loss matrix has $2^s$ outcomes and reports. Under the convention $\mathrm{Jac}(\varnothing,\varnothing)=1$, we prove that the Jaccard score, shifted-loss, and ordinary loss matrices are nonsingular and that the loss columns have affine dimension $2^s-1$. The proof combines a finite MinHash Gram representation with Boolean Möbius inversion. For exact calibration, we prove $2^{s-1} \leq \mathrm{CCdim}(L^{\mathrm{Jac}}) \leq 2^s-1$. The lower bound uses a factorially weighted distribution with $2^{s-1}+1$ supported outcomes and Bayes-optimal reports. Consequently, every exactly calibrated convex surrogate requires exponentially many prediction coordinates. We also give two polynomial-dimensional approximation guarantees with explicit regret transfers. A new $F_1$-to-Jaccard transfer turns an existing $(s^2+1)$-dimensional $F_1$ surrogate into a polynomial-time rule with asymptotic Jaccard regret at most $3-2\sqrt{2}$. For any $α&gt;0$ and $0&lt;ρ&lt;1$, a MinHash square-loss surrogate attains Jaccard-regret floor $α$ uniformly over arbitrary conditional label distributions. With probability at least $1-ρ$, the direct construction has dimension $O((s^2+s\log(1/ρ))/α^2)$, while a signed variant has dimension $O((s+\log(1/ρ))/α^2)$. Thus zero-regret calibration requires exponential dimension, whereas every fixed additive regret tolerance admits polynomial prediction dimension.</summary>
-    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="stat.ML" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:59:17Z</published>
-    <arxiv:primary_category term="cs.LG"/>
-    <author>
-      <name>Mingyuan Zhang</name>
-    </author>
-  </entry>
-  <entry>
-    <id>http://arxiv.org/abs/2608.13547v1</id>
-    <title>QuoteBench: How Matched Scores Can Hide Command-Path Failures</title>
-    <updated>2026-08-13T17:57:20Z</updated>
-    <link href="https://arxiv.org/abs/2608.13547v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2608.13547v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>LLM coding agents issue Bash commands through interfaces that may serialize, wrap, and reparse model output. Matched execution scores alone cannot distinguish command-generation errors from failures introduced after generation. QuoteBench measures this boundary with exact final-state validation on 56 one-shot tasks from 14 incident-derived families, crossing the generation contract with the execution transport around one deliberately unescaped added parser. Escaping at the interpolation point reproduces each replayed reply's raw-path outcome, so any recovery under a disclosed boundary must come from the model changing its generation. Across eight same-window configurations, replaying the same reply through the added parser lowers success by 55.4 to 73.2 percentage points; disclosure recovers 30.4 to 60.7 points for six configurations, and zero or slightly negative for the other two. Raw generation is nearly saturated at the frontier; boundary adaptation is what still separates models. GPT-5.6-sol's matched gap of -3.6 points hides -64.3 points of damage and +60.7 points of compensation. The deployment configuration reorders models: one reversal among 26 comparable pairs is unambiguous and four more sit on single-task margins. Evaluations of command-issuing agents should report the model configuration, generation contract, execution path, operating point, and final-state validator rather than treat a matched score as an intrinsic model property.</summary>
+    <id>http://arxiv.org/abs/2609.30247v1</id>
+    <title>Rolling-WAM: World Action Models with Rolling Imagination</title>
+    <updated>2026-09-24T17:58:03Z</updated>
+    <link href="https://arxiv.org/abs/2609.30247v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2609.30247v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>World Action Models (WAMs) couple action generation with future visual prediction for robotic manipulation. However, completing the joint video-action denoising process at each replanning cycle incurs substantial latency, delaying action updates and limiting closed-loop responsiveness. We present Rolling-WAM, a formulation that distributes joint denoising across successive replanning cycles. Our method maintains a sliding window of video-action chunks at staggered noise levels. At each step, a rolling noise schedule fully denoises the imminent action chunk for execution, while partially refining farther-future chunks. As the window advances with new camera observations, the retained future chunks continue their denoising process. This distributes the computational cost over time while carrying an evolving visual-action context across chunk boundaries. Evaluations on LIBERO, RoboTwin, and a real-world Unitree G1 humanoid show that Rolling-WAM achieves competitive manipulation performance. By removing the need to denoise the entire prediction horizon from scratch, it delivers a 4.5x steady-state replanning speedup over standard joint WAMs.</summary>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.SE" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-08-13T17:57:20Z</published>
-    <arxiv:comment>29 pages, 5 figures. Project page: https://quotebench.lsamc.website/</arxiv:comment>
-    <arxiv:primary_category term="cs.AI"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-09-24T17:58:03Z</published>
+    <arxiv:comment>10 pages, 7 figures, 5 tables. Under review. Project page: https://rolling-wam.github.io/</arxiv:comment>
+    <arxiv:primary_category term="cs.RO"/>
     <author>
-      <name>Shangao Li</name>
+      <name>Yinghua Zhou</name>
     </author>
     <author>
-      <name>Yao Zhang</name>
+      <name>Junjie Ye</name>
     </author>
     <author>
-      <name>Volker Tresp</name>
+      <name>Yiqi Zhao</name>
     </author>
     <author>
-      <name>Yuanyuan Yang</name>
+      <name>Hao Dong</name>
+    </author>
+    <author>
+      <name>Celina Shiyu Wang</name>
+    </author>
+    <author>
+      <name>Ruohai Ge</name>
+    </author>
+    <author>
+      <name>Tingyi Yang</name>
+    </author>
+    <author>
+      <name>Basile Van Hoorick</name>
+    </author>
+    <author>
+      <name>Gaurav Sukhatme</name>
+    </author>
+    <author>
+      <name>Vitor Guizilini</name>
+    </author>
+    <author>
+      <name>Yue Wang</name>
     </author>
   </entry>
 </feed>
