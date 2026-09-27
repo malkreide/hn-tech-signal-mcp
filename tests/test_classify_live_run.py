@@ -214,7 +214,15 @@ class GithubOutputTest(unittest.TestCase):
                 del os.environ["GITHUB_OUTPUT"]
             zeilen = [z for z in out.read_text(encoding="utf-8").splitlines() if z]
         self.assertEqual([z for z in zeilen if z.startswith("state=")], ["state=unknown"])
-        self.assertEqual(len(zeilen), 2)
+        # Die Schluesselmenge, nicht die Zeilenzahl: Hier stand `len(zeilen) == 2`,
+        # und die Zahl wurde falsch, als `red`, `streak` und `red_reason`
+        # dazukamen — obwohl die Zusicherung, um die es geht, unveraendert galt.
+        # Die Menge ist ausserdem strenger: Sie faengt eine eingeschmuggelte
+        # Zeile UND einen weggefallenen Schluessel.
+        self.assertEqual(
+            sorted(z.split("=", 1)[0] for z in zeilen),
+            ["reason", "red", "red_reason", "state", "streak"],
+        )
 
 
 if __name__ == "__main__":
@@ -319,3 +327,164 @@ class StummeQuelleTest(unittest.TestCase):
         """
         quelle = (Path(__file__).parent / "test_server.py").read_text(encoding="utf-8")
         self.assertIn(f'QUELLE_STUMM = "{clr.UNREACHABLE_MARKER}"', quelle)
+
+
+def stumme_suite(anzahl: int = 1, tests: int = 12) -> str:
+    """Ein Report, dessen Fehlschlaege alle den Stumm-Marker tragen."""
+    faelle = "".join(
+        f'<testcase name="test_{i}">'
+        f'<failure message="{clr.UNREACHABLE_MARKER}: arXiv">'
+        f"{clr.UNREACHABLE_MARKER}: arXiv</failure></testcase>"
+        for i in range(anzahl)
+    )
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        f'<testsuites><testsuite name="pytest" tests="{tests}" failures="{anzahl}" '
+        f'errors="0" skipped="0">{faelle}</testsuite></testsuites>'
+    )
+
+
+class SerieTest(unittest.TestCase):
+    """`unknown` wird erst nach drei Laeufen in Folge rot.
+
+    Vorher war jedes `unknown` sofort rot. Inhaltlich richtig, praktisch
+    schaedlich: arXiv drosselt nach IP, GitHub-Runner teilen ihre IPs mit aller
+    Welt, und der Zeitplan lief vom 13. bis 15.9.2026 taeglich rot, ohne dass an
+    den Quellen etwas war. Ein Haken, der jeden Tag rot steht, wird zur Tapete —
+    und mit ihm der naechste, der etwas bedeutet.
+    """
+
+    def _lauf(self, xml: str, zustand: Path) -> dict[str, str]:
+        """Einen Lauf fahren und die Ausgaben lesen. `zustand` wird mitgefuehrt."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "gh-output"
+            out.write_text("", encoding="utf-8")
+            os.environ["GITHUB_OUTPUT"] = str(out)
+            try:
+                clr.main(
+                    [
+                        str(write(Path(tmp), xml)),
+                        "--state-in",
+                        str(zustand),
+                        "--state-out",
+                        str(zustand),
+                    ]
+                )
+            finally:
+                del os.environ["GITHUB_OUTPUT"]
+            return dict(
+                line.split("=", 1) for line in out.read_text(encoding="utf-8").splitlines() if line
+            )
+
+    def test_erst_der_dritte_unknown_lauf_ist_rot(self):
+        with tempfile.TemporaryDirectory() as heim:
+            zustand = Path(heim) / "live-state.json"
+            ergebnisse = [self._lauf(stumme_suite(), zustand) for _ in range(4)]
+
+        self.assertEqual([e["state"] for e in ergebnisse], [clr.UNKNOWN] * 4)
+        self.assertEqual([e["streak"] for e in ergebnisse], ["1", "2", "3", "4"])
+        self.assertEqual(
+            [e["red"] for e in ergebnisse],
+            ["false", "false", "true", "true"],
+            "rot muss beim dritten Lauf einsetzen und danach bleiben",
+        )
+
+    def test_ein_befund_ist_sofort_rot(self):
+        """`finding` wartet auf nichts — da wurde etwas gemessen."""
+        with tempfile.TemporaryDirectory() as heim:
+            zustand = Path(heim) / "live-state.json"
+            e = self._lauf(suite(tests=12, failures=1), zustand)
+        self.assertEqual(e["state"], clr.FINDING)
+        self.assertEqual(e["red"], "true")
+        self.assertEqual(e["streak"], "0")
+
+    def test_ein_gruener_lauf_setzt_die_serie_zurueck(self):
+        """«In Folge» heisst in Folge: Ein `clear` dazwischen bricht sie.
+
+        Ohne das waere die Grenze eine Gesamtzahl ueber die Lebenszeit des
+        Repos und der Melder wuerde irgendwann dauerhaft rot stehen, ohne dass
+        aktuell etwas waere.
+        """
+        with tempfile.TemporaryDirectory() as heim:
+            zustand = Path(heim) / "live-state.json"
+            self._lauf(stumme_suite(), zustand)
+            self._lauf(stumme_suite(), zustand)
+            gruen = self._lauf(suite(tests=12), zustand)
+            danach = self._lauf(stumme_suite(), zustand)
+
+        self.assertEqual(gruen["state"], clr.CLEAR)
+        self.assertEqual(gruen["streak"], "0")
+        self.assertEqual(danach["streak"], "1", "nach einem gruenen Lauf faengt sie neu an")
+        self.assertEqual(danach["red"], "false")
+
+    def test_auch_ein_befund_setzt_die_serie_zurueck(self):
+        """Ein Lauf mit Befund hat die Quellen ja erreicht."""
+        with tempfile.TemporaryDirectory() as heim:
+            zustand = Path(heim) / "live-state.json"
+            self._lauf(stumme_suite(), zustand)
+            self._lauf(stumme_suite(), zustand)
+            self._lauf(suite(tests=12, failures=1), zustand)
+            danach = self._lauf(stumme_suite(), zustand)
+        self.assertEqual(danach["streak"], "1")
+        self.assertEqual(danach["red"], "false")
+
+    def test_gruen_ist_keine_entwarnung(self):
+        """Der Zustand bleibt `unknown`, auch wenn der Job gruen ist.
+
+        Daran haengt alles: Der Workflow-Schritt, der das Drift-Issue
+        schliesst, prueft `state == 'clear'`. Wuerde ein mildes `unknown`
+        hier als `clear` durchgehen, machte der Melder ein offenes Issue zu,
+        ohne dass eine Quelle geantwortet haette — der teuerste Fehler, den
+        dieses Skript verhindern soll.
+        """
+        with tempfile.TemporaryDirectory() as heim:
+            e = self._lauf(stumme_suite(), Path(heim) / "live-state.json")
+        self.assertEqual(e["red"], "false")
+        self.assertEqual(e["state"], clr.UNKNOWN, "gruen darf den Zustand nicht zu clear machen")
+        self.assertIn("keine Entwarnung", e["red_reason"])
+
+    def test_verlorener_vorzustand_beginnt_bei_null_und_sagt_es(self):
+        """Die milde Richtung — aber benannt, nicht stillschweigend.
+
+        Faellt der Cache weg, wird der Job SPAETER rot, nie frueher. Wer das
+        nicht im Log sieht, haelt eine verlorene Serie fuer eine erholte
+        Quelle.
+        """
+        with tempfile.TemporaryDirectory() as heim:
+            fehlt = Path(heim) / "gibt-es-nicht.json"
+            e = self._lauf(stumme_suite(), fehlt)
+        self.assertEqual(e["streak"], "1")
+        self.assertIn("kein Vorzustand", e["red_reason"])
+
+    def test_kaputter_vorzustand_bricht_nichts_ab(self):
+        with tempfile.TemporaryDirectory() as heim:
+            kaputt = Path(heim) / "live-state.json"
+            kaputt.write_text("{kein json", encoding="utf-8")
+            e = self._lauf(stumme_suite(), kaputt)
+        self.assertEqual(e["streak"], "1")
+        self.assertEqual(e["red"], "false")
+        self.assertIn("nicht lesbar", e["red_reason"])
+
+    def test_die_grenze_ist_einstellbar(self):
+        """Damit ein Test sie nicht dreimal durchlaufen muss — und damit die
+        Zahl an einer Stelle steht und nicht in jeder Zusicherung."""
+        self.assertEqual(clr.entscheide_rot(clr.UNKNOWN, 0, grenze=1)[0], True)
+        self.assertEqual(clr.entscheide_rot(clr.UNKNOWN, 0, grenze=5)[0], False)
+        self.assertEqual(clr.UNKNOWN_RUNS_UNTIL_RED, 3)
+
+    def test_der_workflow_haengt_an_red_nicht_an_state(self):
+        """Die Gegenprobe zur Verdrahtung: Ein Skript, das `red` ausgibt, und
+        ein Workflow, der weiter `state != 'clear'` prueft, waeren zusammen
+        wirkungslos — die ganze Aenderung laege brach, und nichts waere rot
+        ausser dem Melder selbst.
+        """
+        yml = (
+            Path(__file__).parent.parent / ".github" / "workflows" / "live-sources.yml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("steps.verdict.outputs.red == 'true'", yml)
+        self.assertNotIn("steps.verdict.outputs.state != 'clear'", yml)
+        # Und der Zustand muss einen Lauf ueberleben, sonst zaehlt niemand mit.
+        self.assertIn("--state-in live-state.json", yml)
+        self.assertIn("--state-out live-state.json", yml)
+        self.assertIn("actions/cache/restore", yml)
+        self.assertIn("actions/cache/save", yml)
