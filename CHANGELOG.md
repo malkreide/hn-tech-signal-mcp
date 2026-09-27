@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-27
+
+Erster Release seit 0.4.1. **In 0.4.1 ist `tech_signal_digest` defekt** (jede
+Abfrage scheiterte an GitHubs HTTP 422, siehe «Fixed» unten), und
+`arxiv_latest` lief bei mehreren Kategorien in arXivs Rate-Limit. Beides ist
+hier behoben.
+
+**Verhaltensänderung für Clients, die strukturiert lesen:** jedes Werkzeug
+meldet ein eigenes `outputSchema`, und Fehler kommen mit `isError: true` statt
+als Erfolg. Der Antworttext selbst ist Byte für Byte unverändert — wer nur Text
+liest, merkt nichts. Deshalb 0.5.0 und nicht 0.4.2.
+
+### Fixed
+
+- **`arxiv_latest` mit mehreren Kategorien lief ins Rate-Limit.** Eine Anfrage
+  je Kategorie, alle zugleich: für die dokumentierte Eingabe «alle sechs
+  AI-Kategorien» kam `[arXiv] Error: Rate limit exceeded.` mit null Papers
+  zurück. Jetzt eine Abfrage `cat:A OR cat:B OR …`, gruppiert nach allen
+  Kategorien eines Papers (neu im Ergebnis: `categories`), nicht nur der
+  primären. Kommt eine kleine Kategorie im gemeinsamen Fenster zu kurz, steht
+  sie in `incomplete_categories` samt `note`, statt stillschweigend weniger zu
+  liefern.
+- **Fehlermeldungen zeigten auf die falsche Quelle oder ins Leere.**
+  «For GitHub, set GITHUB_TOKEN» hing an jedem 429 und 403, auch an denen von
+  arXiv, das nach IP drosselt. Der Hinweis steht jetzt nur noch bei GitHub. Das
+  eigene Zeitbudget (`asyncio.timeout` wirft das eingebaute `TimeoutError`)
+  kam als `Error: TimeoutError: ` mit leerem Rest an; es heisst jetzt wie jeder
+  Timeout `Request timed out.`, und eine Ausnahme ohne Text endet mit
+  `no further detail` statt nach dem Doppelpunkt.
+
 ### Changed
 
 - **Strukturierte Ausgabe statt Text im Textfeld.** Jedes der acht Werkzeuge
