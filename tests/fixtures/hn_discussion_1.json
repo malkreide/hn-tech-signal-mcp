@@ -1,12 +1,11 @@
 {
-  "by": "randycupertino",
-  "id": 49311652,
+  "by": "LiamPowell",
+  "id": 49865554,
   "kids": [
-    49312071,
-    49311734
+    49865572
   ],
-  "parent": 49311651,
-  "text": "This is interesting.  Diabetes is a well-known risk factor for dementia.",
-  "time": 1786809533,
+  "parent": 49865343,
+  "text": "&gt; yet what drives them is not well understood<p>Presumably the fact that they&#x27;re heavily trained to reply in this way? I don&#x27;t know about the rest of the paper, but this part sticks out as a really odd claim unless I&#x27;m entirely misunderstanding this part.",
+  "time": 1790506742,
   "type": "comment"
 }

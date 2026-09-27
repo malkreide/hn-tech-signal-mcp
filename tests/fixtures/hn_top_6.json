@@ -1,18 +1,22 @@
 {
-  "by": "r34",
-  "descendants": 6,
-  "id": 49310533,
+  "by": "chmaynard",
+  "descendants": 90,
+  "id": 49856988,
   "kids": [
-    49311946,
-    49310991,
-    49311125,
-    49311063,
-    49310974
+    49862080,
+    49863393,
+    49864704,
+    49862908,
+    49864443,
+    49864467,
+    49863668,
+    49862836,
+    49862677,
+    49863303
   ],
-  "score": 26,
-  "text": "Hi! This is my little project introducing quasicrystals animations with some parameters. It uses a custom shader to allow higher resolution.<p>Not all combinations look equally good. For example the &quot;Spectrum&quot; color palette IMO makes sense only for low values of &quot;Tempo&quot; and &quot;Pattern Density&quot;.<p>If you have VR googles, I recommend trying the WebXR version - it&#x27;s really nice.",
-  "time": 1786801723,
-  "title": "Show HN: Quasicrystals Animation Playground with WebXR",
+  "score": 232,
+  "time": 1790433289,
+  "title": "Go Concurrency Distilled",
   "type": "story",
-  "url": "https://hypnagogic-quasicrystals.github.io/"
+  "url": "https://antonz.org/go-concurrency-distilled/"
 }

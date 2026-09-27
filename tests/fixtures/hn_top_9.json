@@ -1,13 +1,23 @@
 {
-  "by": "jeffreyrogers",
-  "descendants": 1,
-  "id": 49312008,
+  "by": "torutofu",
+  "descendants": 29,
+  "id": 49856193,
   "kids": [
-    49312441
+    49864260,
+    49865199,
+    49864158,
+    49864238,
+    49864000,
+    49864923,
+    49863679,
+    49864042,
+    49864076,
+    49864069,
+    49864438
   ],
-  "score": 41,
-  "time": 1786811914,
-  "title": "A controversial Alzheimer's surgery is said to reverse symptoms",
+  "score": 52,
+  "time": 1790428205,
+  "title": "Improving site performance by shipping more CSS",
   "type": "story",
-  "url": "https://www.nature.com/articles/d41586-026-02448-x"
+  "url": "https://github.blog/engineering/architecture-optimization/improving-site-performance-by-shipping-more-css/"
 }

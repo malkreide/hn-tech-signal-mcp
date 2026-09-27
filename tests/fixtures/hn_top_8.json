@@ -1,14 +1,27 @@
 {
-  "by": "sensanaty",
-  "descendants": 2,
-  "id": 49310926,
+  "by": "shenli3514",
+  "descendants": 85,
+  "id": 49859112,
   "kids": [
-    49312432,
-    49312152
+    49861611,
+    49860324,
+    49863709,
+    49862733,
+    49861294,
+    49862017,
+    49861598,
+    49861060,
+    49860154,
+    49863167,
+    49861104,
+    49863755,
+    49863604,
+    49863102,
+    49860554
   ],
-  "score": 25,
-  "time": 1786804444,
-  "title": "A Spectre Is Haunting Unicode",
+  "score": 255,
+  "time": 1790446961,
+  "title": "DeepSeek Elastic Compute (DSec)",
   "type": "story",
-  "url": "https://www.dampfkraft.com/ghost-characters.html"
+  "url": "https://arxiv.org/abs/2609.22978"
 }

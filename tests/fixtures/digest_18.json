@@ -1,15 +1,14 @@
 {
-  "by": "gmays",
-  "descendants": 11,
-  "id": 49310248,
+  "by": "jiegec",
+  "descendants": 6,
+  "id": 49827900,
   "kids": [
-    49311608,
-    49310549,
-    49311774
+    49859021,
+    49861793
   ],
-  "score": 38,
-  "time": 1786799368,
-  "title": "Brain turns listening inward during REM sleep, EEG recordings suggest",
+  "score": 123,
+  "time": 1790239000,
+  "title": "The Lost Atomic Update on Loongson CPU",
   "type": "story",
-  "url": "https://medicalxpress.com/news/2026-07-brain-rem-eeg.html"
+  "url": "https://jia.je/hardware/2026/09/24/loongson-cpu-erratum-en/"
 }

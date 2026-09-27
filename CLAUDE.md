@@ -235,6 +235,51 @@ Tag weiter (429 nach 15,6 s, 46,9 s und 26,3 s), und unter genau dieser
 Bedingung läuft `test_live_digest` jetzt grün, mit
 `degraded_sources: ['arxiv', 'github']` in der Antwort.
 
+**Nachtrag 15./27.9.2026: die Quelle nicht sechsmal fragen.** Am 15.9. war der
+Live-Lauf wieder rot — korrekt als `unknown`, ein Fehlschlag, kein falsches
+Issue. Beim Nachmessen fiel ein Defekt auf, der nichts mit dem Zeitplan zu tun
+hatte: `arxiv_latest` fächerte mit `asyncio.gather` eine Anfrage je Kategorie
+auf, und der Aufruf über alle sechs AI-Kategorien — eine dokumentierte, gültige
+Eingabe — kam als «Rate limit exceeded» mit null Papers zurück. HackerNews
+hatte seit je eine Semaphore, arXiv gar nichts.
+
+Der erste Versuch, das mit einer Drosselung zu lösen, **scheiterte an seinem
+eigenen Nachweis**: Sechs Anfragen über fünf Sekunden verteilt liefen weiter in
+die 429. Dazu war die Messung, auf die sich der Abstand stützte, nicht
+belastbar — sie hatte viermal *dieselbe* URL geholt, und arXiv liegt hinter
+Fastly; identische Abfragen erreichen den Limiter womöglich nie. Die Änderung
+wurde deshalb verworfen statt mit widerlegter Begründung eingebaut.
+
+Drei Handgriffe daraus:
+
+- **Ein dritter Abweisungsmodus: HTTP 406 für alles.** Am 27.9. antwortete
+  `export.arxiv.org` auf eine OR-Abfrage mit 406, und das sah nach «OR wird
+  nicht unterstützt» aus — vier Varianten durchprobiert, alle 406. Die
+  Positivkontrolle kippte den Befund: Die *einfache* Abfrage, die Minuten
+  vorher 200 geliefert hatte, gab jetzt ebenfalls 406. Die 406 gehörte dem
+  Zustand der Quelle, nicht der Abfrageform. Ohne die gleichzeitige Kontrolle
+  wäre hier ein Fehlbefund ins Repo gewandert.
+- **Die Spec lesen, statt aus Statuscodes zu schliessen.** arXivs API-Handbuch
+  nennt `AND OR ANDNOT` ausdrücklich und bittet um Abstand: «we encourage you
+  to play nice and incorporate a 3 second delay in your code». Sechs mal drei
+  Sekunden passen nicht in das Zeitfenster des MCP-Clients — eine Anfrage
+  braucht den Abstand gar nicht. Genau das macht `arxiv_latest` jetzt.
+  `tech_signal_digest` fuhr die OR-Form ohnehin seit je; sie war hier also
+  erprobt und nicht neu.
+- **Gruppieren über ALLE Kategorien, nicht die primäre.** `cat:cs.AI` trifft
+  jedes Paper, das cs.AI irgendwo führt. Wer die OR-Antwort nach
+  `primary_category` sortiert, ordnet ein Paper mit primär cs.CL und
+  Nebeneintrag cs.AI unter cs.CL weg — dieselben Anfragen gespart, aber eine
+  andere Auswahl geliefert. Nachgeprüft an `arxiv_latest_1.xml`, wo ein
+  Eintrag `stat.ML` und `cs.LG` zugleich trägt.
+
+Gemessen am 27.9., eine Abfrage über alle sechs Kategorien, `max_results=200`:
+cs.AI 95, cs.LG 68, cs.CL 53, cs.CV 51, **cs.NE 6, stat.ML 11** — und null
+Papers ohne eine der angefragten Kategorien. Ein gemeinsames Fenster kann eine
+kleine Kategorie also nicht bis `limit` füllen. Das weist `arxiv_latest` als
+`incomplete_categories` aus, statt stillschweigend weniger zu liefern: Ohne
+diesen Hinweis hält das Modell die kurze Liste für den Bestand der Quelle.
+
 **Dieselbe Falle bei einer Konfigurationsoption: die Vorgabe lesen, bevor man
 einen Schlüssel für wirkungslos hält.** Am 29.8.2026 fielen die
 `labels:`-Zeilen aus den `dependabot.yml` des Portfolios, begründet mit
@@ -534,7 +579,7 @@ auf keine der beiden Zählweisen passt. Alle drei Zahlen dieses Satzes prüft
 nur einer Hälfte den Satz still in sich widersprüchlich machte.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
 
-**Fixtures: aufgezeichnet.** `tests/fixtures/` hält 46 echte Antworten;
+**Fixtures: aufgezeichnet.** `tests/fixtures/` hält 44 echte Antworten;
 Herkunft, Schlüssel, Auswahlregel und SHA-256 stehen je Datei in
 `tests/fixtures/PROVENANCE.md` — Portfolio-Konvention, gleich wie in
 `swisstopo-mcp` und `swiss-environment-mcp`. Neu aufzeichnen mit
@@ -542,6 +587,13 @@ Herkunft, Schlüssel, Auswahlregel und SHA-256 stehen je Datei in
 `tests/fixture_data.py`. Die respx-Stubs in `tests/test_server.py` bleiben für
 die Fehlerpfade — Timeout, 5xx, leere Trefferliste —, die sich nicht auf Zuruf
 aufzeichnen lassen.
+
+Die Zahl wandert, wenn sich die *Form* einer Anfrage ändert, nicht nur ihr
+Inhalt: Der Umbau von `arxiv_latest` auf eine OR-Abfrage (27.9.2026) liess
+`arxiv_latest_2.xml` gegenstandslos werden, weil es die zweite Einzelabfrage
+gar nicht mehr gibt; der Recorder hat es als veraltet entfernt. Diese Zahl
+prüft kein Gate — wer sie von Hand nachzieht, prüfe sie mit
+`ls tests/fixtures/*.json tests/fixtures/*.xml | wc -l`.
 
 Eine Aufzeichnung je **Abfrage**, nicht je Endpunkt: `hn_top_stories` holt erst
 eine ID-Liste und dann jede Story einzeln, `hn_discussion` steigt den

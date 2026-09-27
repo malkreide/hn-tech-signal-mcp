@@ -1,16 +1,17 @@
 {
-  "by": "bbayles",
-  "descendants": 28,
-  "id": 49272784,
+  "by": "z-mach9",
+  "descendants": 12,
+  "id": 49851883,
   "kids": [
-    49279049,
-    49274583,
-    49307226,
-    49307559
+    49862972,
+    49856644,
+    49856889,
+    49856082,
+    49859606
   ],
-  "score": 116,
-  "time": 1786544345,
-  "title": "Unearthing a 31 year old Easter egg in Ecco the Dolphin",
+  "score": 67,
+  "time": 1790382603,
+  "title": "Generate fonts where every LLM token is the same width",
   "type": "story",
-  "url": "https://32bits.substack.com/p/under-the-microscope-ecco-the-dolphin-98c"
+  "url": "https://ampdot.mesh.host/token-space-fonts.html"
 }

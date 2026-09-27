@@ -1,27 +1,14 @@
 {
-  "by": "bookofjoe",
-  "descendants": 61,
-  "id": 49271382,
+  "by": "yullius",
+  "descendants": 0,
+  "id": 49865067,
   "kids": [
-    49309029,
-    49311096,
-    49309732,
-    49288184,
-    49310212,
-    49311719,
-    49271383,
-    49309992,
-    49312210,
-    49310970,
-    49310529,
-    49309220,
-    49308900,
-    49309207,
-    49310801
+    49865256
   ],
-  "score": 96,
-  "time": 1786537876,
-  "title": "In 1962, Egypt's Missile Program Lost Its Key Scientist Without a Trace",
+  "score": 4,
+  "text": "Hi HN, Light Cloud is a hosting platform where the unit of organisation is a folder. A folder holds everything project needs: frontend, API, database, env variables, preview per branch.",
+  "time": 1790502315,
+  "title": "Show HN: LightCloud – A cloud console organised like file system",
   "type": "story",
-  "url": "https://www.popularmechanics.com/military/a73358518/nazi-rocket-scientist-disappearance/"
+  "url": "https://www.light-cloud.com/"
 }

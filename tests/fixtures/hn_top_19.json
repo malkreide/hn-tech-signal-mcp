@@ -1,15 +1,17 @@
 {
-  "by": "uecker",
-  "descendants": 34,
-  "id": 49308685,
+  "by": "matt_d",
+  "descendants": 10,
+  "id": 49863600,
   "kids": [
-    49309818,
-    49309524,
-    49309757
+    49865511,
+    49865257,
+    49865371,
+    49864719,
+    49864722
   ],
-  "score": 66,
-  "time": 1786780782,
-  "title": "Using GCC's Nested Functions with Wide Pointers and No Trampolines II",
+  "score": 19,
+  "time": 1790486775,
+  "title": "The internet discovers TLA+. Now what?",
   "type": "story",
-  "url": "https://uecker.codeberg.page/2026-07-14.html"
+  "url": "https://reasonable.io/blog/tla-tutorial/"
 }
