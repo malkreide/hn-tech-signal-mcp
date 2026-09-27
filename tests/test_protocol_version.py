@@ -28,10 +28,10 @@ Nachgemessen statt aus Konstantennamen geschlossen: die Aushandlung steht in
 
 — sie haengt an keinem Transport, gilt also fuer stdio ebenso wie fuer HTTP.
 
-Ohne gemessenen Teil: dieses Repo baut keine ASGI-App, durch die sich ein
-`initialize` schicken liesse. Die Zusicherungen unten haengen deshalb an den
-SDK-Konstanten. Das ist die schwaechere Form, und sie steht hier benannt statt
-unausgesprochen.
+Die Zusicherungen hier haengen an den SDK-Konstanten — sie sagen, welche
+Revisionen das SDK *nennt*. Dass dieser Server sie auch *spricht*, misst
+`tests/test_modern_era.py` ueber echte Verbindungen, in-process und ueber die
+ASGI-App. Bis dahin stand an dieser Stelle, es gebe keinen gemessenen Teil.
 """
 
 from __future__ import annotations

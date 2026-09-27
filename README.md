@@ -251,9 +251,23 @@ other era is refused.
 Both revisions are pinned in
 [`tests/test_protocol_version.py`](tests/test_protocol_version.py) and asserted
 against the installed SDK, so a Dependabot bump of `mcp` cannot move either one
-silently. This server builds no ASGI app to send an `initialize` through, so
-the gate asserts the SDK constants rather than a measured response — the
-weaker form, named rather than left unsaid.
+silently.
+
+Spoken, not just named: [`tests/test_modern_era.py`](tests/test_modern_era.py)
+actually connects — in-process in every era (`2026-07-28`, `auto`, `legacy`) and
+over HTTP with single POSTs, no `initialize` and no `Mcp-Session-Id`, against
+the ASGI app that `MCP_TRANSPORT=streamable_http` starts. It checks
+`server/discover`, `tools/list` with its freshness hint, `tools/call` with the
+`Mcp-Name` header, the `serverInfo` stamp in the `_meta` of every response, and
+that no feature deprecated by SEP-2577 (sampling, roots, logging) is involved.
+Two negative controls sit alongside: a wrong `Mcp-Method` header is rejected
+with `-32020`, and the same request under `2025-11-25` still requires a session.
+
+**Known, SDK-side:** `server/discover` advertises `resources` and `prompts`
+(with `listChanged` / `subscribe`) although this server registers neither —
+`MCPServer` always installs those handlers. Switching that off would mean
+touching private attributes; instead the tests assert that both lists answer
+empty and without error.
 
 Note that the SDK's `LATEST_PROTOCOL_VERSION` is an alias for the **modern**
 era, not for the handshake era — pinning against it alone would leave the era

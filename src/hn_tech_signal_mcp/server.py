@@ -258,8 +258,17 @@ CACHE_HINTS: dict[CacheableMethod, CacheHint] = {
     "server/discover": CacheHint(ttl_ms=LIST_CACHE_TTL_MS, scope="public"),
 }
 
+# Spec 2026-07-28: ohne `initialize` gibt es kein `InitializeResult.serverInfo`
+# mehr — der Server stempelt sich stattdessen in das `_meta` JEDER Antwort
+# (`io.modelcontextprotocol/serverInfo`). `version` defaultet im SDK auf "",
+# und genau das stand bis hierhin auf jeder Antwort beider Aeren: ein Client,
+# der nach Version unterscheidet, sah einen Server ohne Version. Aus
+# `__version__`, nie als Literal — `check_version_sync.py` haelt `src/` frei.
 server = MCPServer(
     "hn_tech_signal_mcp",
+    title="HN Tech Signal",
+    version=__version__,
+    website_url="https://github.com/malkreide/hn-tech-signal-mcp",
     cache_hints=CACHE_HINTS,
     instructions=(
         "Tech & AI intelligence server aggregating signals from HackerNews, arXiv, "
