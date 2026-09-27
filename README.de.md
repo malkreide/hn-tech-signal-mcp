@@ -251,6 +251,32 @@ und [`CHANGELOG.md`](CHANGELOG.md) gemeinsam bewegen.
 
 ---
 
+## Werkzeug-Ausgabe
+
+Jedes Werkzeug meldet sein eigenes `outputSchema` (geschlossen:
+`additionalProperties: false`) aus den Modellen in
+`src/hn_tech_signal_mcp/outputs.py` und antwortet in den drei Formen, die die
+Spec unterscheidet:
+
+| Fall | `content[0].text` | `structuredContent` | `isError` |
+|---|---|---|---|
+| Erfolg | Das JSON-Objekt, eingerückt | Dasselbe Objekt | `false` |
+| Quelle ausgefallen | `[Quelle] Error: …` | — | `true` |
+| Unbekannte oder falsche ID (`hn_discussion`) | Ein Satz, was stattdessen zu übergeben ist | — | `true` |
+| Digest mit teilweisem Ausfall | Das JSON-Objekt mit `degraded_sources` und `error` je Quelle | Dasselbe Objekt | `false` |
+
+Vorher leitete das SDK aus der Annotation `-> str` ein Schema
+`{"result": string}` ab: strukturierte Clients bekamen das JSON als ein einziges
+Textfeld, und jeder Fehler kam mit `isError: false` an.
+
+Der Text bleibt Byte für Byte derselbe — Clients, die nur Text lesen, merken
+nichts. Eine Antwort, die nicht zu ihrem Schema passt, wird als Defekt des
+Servers gemeldet, mit den betroffenen Feldpfaden (nie den Werten), statt
+ungeprüft beim Client anzukommen. Die aufgezeichneten Antworten und der tägliche
+Live-Lauf gehen beide durch diesen Pfad, in beiden Protokoll-Aeren.
+
+---
+
 ## Changelog
 
 Siehe [CHANGELOG.md](CHANGELOG.md)

@@ -1665,13 +1665,45 @@ def test_eine_veraenderung_bleibt_ein_befund():
         assert not _ist_stummer_envelope(envelope), envelope
 
 
+async def _ueber_das_sdk(werkzeug, params) -> str:
+    """Einen Live-Aufruf durch die SDK-Schicht fahren statt direkt.
+
+    Direkt gerufen liefert ein Werkzeug seinen Text, und das `outputSchema`
+    spielt keine Rolle. Ein Client sieht dagegen, was der Adapter aus `_tool`
+    daraus macht — und der prueft gegen das Modell. Ein Feld, das eine Quelle
+    neuerdings als `null` schickt, faellt nur hier auf, an echten Daten; die
+    Aufzeichnungen kennen nur den Tag, an dem sie entstanden.
+
+    Zurueck kommt derselbe Text, damit `_live_json` und `_fail_if_stumm`
+    unveraendert greifen. Kein zusaetzlicher Aufruf: derselbe Abruf wie vorher,
+    nur ueber den Draht — arXiv drosselt schon so.
+    """
+    from mcp import Client
+
+    from hn_tech_signal_mcp.server import server as mcp
+
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            werkzeug.__name__, {"params": params.model_dump(mode="json")}
+        )
+    text = result.content[0].text
+    if result.is_error:
+        assert result.structured_content is None
+        # Ein Schemaverstoss ist eine Aussage ueber die Form der Daten, also
+        # ein Befund — laut und mit Namen, nicht als spaeterer JSONDecodeError.
+        assert "outputSchema" not in text, f"{werkzeug.__name__}: {text}"
+    else:
+        assert result.structured_content == json.loads(text)
+    return text
+
+
 @pytest.mark.live
 @pytest.mark.asyncio
 async def test_live_hn_top_stories():
     """Live: fetch HN top stories."""
     from hn_tech_signal_mcp.server import HnTopStoriesInput, hn_top_stories
 
-    result = await hn_top_stories(HnTopStoriesInput(limit=3))
+    result = await _ueber_das_sdk(hn_top_stories, HnTopStoriesInput(limit=3))
     data = _live_json(result, "HackerNews")
     assert data["count"] > 0
     assert len(data["stories"]) > 0
@@ -1684,7 +1716,9 @@ async def test_live_hn_search():
     """Live: search HN for AI content."""
     from hn_tech_signal_mcp.server import HnSearchInput, hn_search
 
-    result = await hn_search(HnSearchInput(query="large language models", limit=3, days_back=30))
+    result = await _ueber_das_sdk(
+        hn_search, HnSearchInput(query="large language models", limit=3, days_back=30)
+    )
     data = _live_json(result, "HN Algolia")
     assert "hits" in data
 
@@ -1695,7 +1729,7 @@ async def test_live_arxiv_latest():
     """Live: fetch latest arXiv cs.AI papers."""
     from hn_tech_signal_mcp.server import ArxivLatestInput, arxiv_latest
 
-    result = await arxiv_latest(ArxivLatestInput(categories=["cs.AI"], limit=3))
+    result = await _ueber_das_sdk(arxiv_latest, ArxivLatestInput(categories=["cs.AI"], limit=3))
     data = _live_json(result, "arXiv")
     assert data["total_papers"] > 0
     papers = data["by_category"]["cs.AI"]
@@ -1709,7 +1743,7 @@ async def test_live_arxiv_search():
     """Live: search arXiv for LLM papers."""
     from hn_tech_signal_mcp.server import ArxivSearchInput, arxiv_search
 
-    result = await arxiv_search(ArxivSearchInput(query="LLM agents", limit=3))
+    result = await _ueber_das_sdk(arxiv_search, ArxivSearchInput(query="LLM agents", limit=3))
     data = _live_json(result, "arXiv")
     assert data["count"] > 0
 
@@ -1720,7 +1754,7 @@ async def test_live_lobsters_hot():
     """Live: fetch Lobste.rs hottest stories."""
     from hn_tech_signal_mcp.server import LobstersHotInput, lobsters_hot
 
-    result = await lobsters_hot(LobstersHotInput(limit=5))
+    result = await _ueber_das_sdk(lobsters_hot, LobstersHotInput(limit=5))
     data = _live_json(result, "Lobste.rs")
     assert data["count"] > 0
     assert data["stories"][0]["title"]
@@ -1732,7 +1766,9 @@ async def test_live_github_trending():
     """Live: fetch trending LLM repos on GitHub."""
     from hn_tech_signal_mcp.server import GithubTrendingAiInput, github_trending_ai
 
-    result = await github_trending_ai(GithubTrendingAiInput(topic="llm", limit=3, min_stars=100))
+    result = await _ueber_das_sdk(
+        github_trending_ai, GithubTrendingAiInput(topic="llm", limit=3, min_stars=100)
+    )
     data = _live_json(result, "GitHub")
     assert data["count"] > 0
     assert data["repos"][0]["stars"] >= 100
@@ -1744,10 +1780,11 @@ async def test_live_digest():
     """Live: generate tech signal digest."""
     from hn_tech_signal_mcp.server import TechSignalDigestInput, tech_signal_digest
 
-    result = await tech_signal_digest(
+    result = await _ueber_das_sdk(
+        tech_signal_digest,
         TechSignalDigestInput(
             focus=None, hn_limit=3, arxiv_limit=3, lobsters_limit=3, github_limit=3
-        )
+        ),
     )
     data = _live_json(result, "Digest")
     assert "sources" in data
@@ -1765,7 +1802,8 @@ async def test_live_hn_extended_feeds(feed):
     from hn_tech_signal_mcp.server import HnTopStoriesInput, hn_top_stories
 
     data = _live_json(
-        await hn_top_stories(HnTopStoriesInput(feed=feed, limit=3)), f"HackerNews/{feed}"
+        await _ueber_das_sdk(hn_top_stories, HnTopStoriesInput(feed=feed, limit=3)),
+        f"HackerNews/{feed}",
     )
     assert data["count"] > 0, f"{feed} feed came back empty"
     assert data["stories"][0]["title"]
@@ -1783,11 +1821,15 @@ async def test_live_hn_discussion():
         hn_top_stories,
     )
 
-    top = _live_json(await hn_top_stories(HnTopStoriesInput(feed="top", limit=1)), "HackerNews")
+    top = _live_json(
+        await _ueber_das_sdk(hn_top_stories, HnTopStoriesInput(feed="top", limit=1)), "HackerNews"
+    )
     story_id = top["stories"][0]["id"]
 
     data = _live_json(
-        await hn_discussion(HnDiscussionInput(story_id=story_id, max_depth=2, max_comments=10)),
+        await _ueber_das_sdk(
+            hn_discussion, HnDiscussionInput(story_id=story_id, max_depth=2, max_comments=10)
+        ),
         "HackerNews",
     )
     assert data["story"]["id"] == story_id
@@ -1802,7 +1844,7 @@ async def test_live_hn_discussion_missing_item():
     """Live: the API's HTTP 200 + null response for unknown IDs is handled."""
     from hn_tech_signal_mcp.server import HnDiscussionInput, hn_discussion
 
-    result = await hn_discussion(HnDiscussionInput(story_id=999999999999))
+    result = await _ueber_das_sdk(hn_discussion, HnDiscussionInput(story_id=999999999999))
     # Auch hier, obwohl nichts geparst wird: Ein stummer Server liefert einen
     # Fehler-Envelope, in dem «No item found» genauso wenig steht wie in einer
     # geaenderten Antwort. Ohne diese Zeile waeren die beiden Faelle im Report
