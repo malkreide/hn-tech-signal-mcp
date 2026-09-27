@@ -483,7 +483,7 @@ zwischen Repos nicht verwechseln.
 **Das Versions-Sync-Gate gehört dazu.** `scripts/` enthält
 `check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py`,
 `classify_live_run.py` und `record_fixtures.py`. Die Version ist `dynamic` und kommt aus
-`src/hn_tech_signal_mcp/__init__.py` (`0.4.1`); `server.json` trägt sie zweimal
+`src/hn_tech_signal_mcp/__init__.py` (`0.5.0`); `server.json` trägt sie zweimal
 (`version` und `packages[0].version`), beide READMEs je einmal im Badge. Weil
 `pyproject.toml` die Zahl gar nicht nennt, fiel beim Anheben früher leicht eine
 der Stellen unter den Tisch — genau das hält jetzt `check_version_sync.py` fest,
