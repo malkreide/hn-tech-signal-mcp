@@ -221,9 +221,24 @@ aus der jeweils anderen Aera wird abgewiesen.
 Beide Revisionen sind in
 [`tests/test_protocol_version.py`](tests/test_protocol_version.py) gepinnt und
 werden gegen das installierte SDK geprueft; ein Dependabot-Bump von `mcp` kann
-also keine der beiden still verschieben. Dieser Server baut keine ASGI-App, durch die sich ein `initialize`
-schicken liesse; das Gate sichert deshalb die SDK-Konstanten statt einer
-gemessenen Antwort — die schwaechere Form, benannt statt verschwiegen.
+also keine der beiden still verschieben.
+
+Gesprochen, nicht nur genannt: [`tests/test_modern_era.py`](tests/test_modern_era.py)
+verbindet sich tatsaechlich — in-process in jeder Aera (`2026-07-28`, `auto`,
+`legacy`) und ueber HTTP mit einzelnen POSTs ohne `initialize` und ohne
+`Mcp-Session-Id` gegen die ASGI-App, die `MCP_TRANSPORT=streamable_http`
+startet. Geprueft werden `server/discover`, `tools/list` samt Frischehinweis,
+`tools/call` mit `Mcp-Name`-Header, der `serverInfo`-Stempel im `_meta` jeder
+Antwort und dass kein nach SEP-2577 abgekuendigtes Feature (Sampling, Roots,
+Logging) im Spiel ist. Zwei Negativkontrollen daneben: ein falscher
+`Mcp-Method`-Header wird mit `-32020` abgewiesen, und dieselbe Anfrage unter
+`2025-11-25` verlangt weiterhin eine Session.
+
+**Bekannt, SDK-seitig:** `server/discover` bewirbt `resources` und `prompts`
+(mit `listChanged` bzw. `subscribe`), obwohl dieser Server keine registriert —
+`MCPServer` legt die Handler immer an. Abschalten liesse es sich nur ueber
+private Attribute; zugesichert ist stattdessen, dass beide Listen leer und
+fehlerfrei antworten.
 
 Zu beachten: `LATEST_PROTOCOL_VERSION` im SDK ist ein Alias auf die **moderne**
 Aera, nicht auf die Handshake-Aera — wer nur dagegen pinnt, laesst genau die

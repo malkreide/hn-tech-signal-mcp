@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`serverInfo.version` war leer — auf jeder Antwort.** Spec `2026-07-28`
+  kennt kein `InitializeResult` mehr; der Server stempelt sich stattdessen in
+  das `_meta` jeder einzelnen Antwort (`io.modelcontextprotocol/serverInfo`).
+  `MCPServer` defaultet `version` auf `""`, und genau das stand dort, in der
+  Handshake-Aera ebenso. Jetzt aus `__version__`, dazu `title` und
+  `website_url`.
+
+### Added
+
+- **`2026-07-28` gemessen statt aus Konstanten geschlossen**
+  (`tests/test_modern_era.py`, 14 Tests). Das Protokoll-Gate pinnte bisher nur,
+  welche Revisionen das SDK *nennt*, und sagte selbst, es habe keinen gemessenen
+  Teil. Jetzt: echte Verbindungen in jeder Aera (in-process mit `mode`
+  `2026-07-28`, `auto`, `legacy`) und einzelne HTTP-POSTs ohne `initialize` und
+  ohne `Mcp-Session-Id` gegen die ASGI-App von `streamable_http_app()` —
+  `server/discover`, `tools/list`, `tools/call` mit `Mcp-Name`, der
+  `serverInfo`-Stempel, keine SEP-2577-Abkuendigung im Umlauf. Negativkontrollen:
+  falscher `Mcp-Method`-Header → `-32020`, dieselbe Anfrage unter `2025-11-25`
+  → Session verlangt.
+
+  Die Gegenprobe fand einen Test, der nichts pruefte: der Abkuendigungs-Test
+  rief ein Werkzeug zuerst mit ungueltigem Argument auf, der Werkzeugkoerper
+  lief nie, und eine eingeschleuste Warnung blieb gruen. Er geht jetzt ueber
+  einen echten Aufruf mit aufgezeichneter Antwort.
+
+- **Befund, SDK-seitig, benannt:** `server/discover` bewirbt `resources` und
+  `prompts`, obwohl dieser Server keine registriert. Zugesichert ist, dass beide
+  Listen leer und fehlerfrei antworten; abschalten liesse es sich nur ueber
+  private Attribute.
+
 ### Added
 
 - **Frischehinweise auf den auflistenden Methoden** (SEP-2549, Spec
