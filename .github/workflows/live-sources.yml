@@ -82,16 +82,43 @@ jobs:
       # der Aufraeumschritt schloss ein offenes Drift-Issue mit dem Satz «Die
       # Quellen antworten wieder wie erwartet», ohne dass eine einzige Quelle
       # gefragt worden waere.
+      # Die Serie der `unknown`-Laeufe muss einen Lauf ueberleben, sonst kann
+      # niemand «drei in Folge» zaehlen. Der Cache statt eines Commits oder
+      # eines Issues: Er braucht keine zusaetzliche Berechtigung, und er ist je
+      # Branch getrennt — ein `workflow_dispatch` auf einem Feature-Branch liest
+      # die Serie von `main`, schreibt aber in seinen eigenen Bereich und kann
+      # den Zaehler des Default-Branch nicht verderben. Dieselbe Trennung, die
+      # `IS_DEFAULT_BRANCH` oben schon zieht.
+      #
+      # Geht der Cache verloren (verdraengt, erster Lauf), beginnt die Serie bei
+      # 0: Der Job wird dann SPAETER rot, nie frueher, und die Einordnung sagt
+      # es im Log. Ein stiller Verlust waere schlimmer als ein spaeter Haken.
+      - name: Serie des vorigen Laufs holen
+        uses: actions/cache/restore@v4
+        with:
+          path: live-state.json
+          key: live-unknown-streak-${{ github.run_id }}
+          restore-keys: live-unknown-streak-
+
       - name: Ergebnis einordnen
         id: verdict
         env:
           PYTEST_EXIT: ${{ steps.suite.outputs.pytest_exit }}
         run: |
-          args=(live-report.xml)
+          args=(live-report.xml --state-in live-state.json --state-out live-state.json)
           if [ -n "$PYTEST_EXIT" ]; then
             args+=(--pytest-exit "$PYTEST_EXIT")
           fi
           python scripts/classify_live_run.py "${args[@]}"
+
+      # Nach der Einordnung, damit die neue Serie gespeichert wird. Ein eigener
+      # Schluessel je Lauf, weil ein Cache-Eintrag unveraenderlich ist; gelesen
+      # wird oben ueber das Praefix.
+      - name: Serie fuer den naechsten Lauf ablegen
+        uses: actions/cache/save@v4
+        with:
+          path: live-state.json
+          key: live-unknown-streak-${{ github.run_id }}
 
       - name: Report a red run as an issue
         # Ein roter geplanter Lauf, den niemand sieht, ist so gut wie kein Lauf.
@@ -141,11 +168,33 @@ jobs:
             gh issue close "$number" --reason completed
           done
 
-      # Erst hier wird der Job rot. `clear` ist gruen; `finding` und `unknown`
-      # sind beide rot, aber nur `finding` hat oben ein Issue erzeugt — der
-      # Unterschied steht im Log, nicht im Exit-Code. `unknown` ruehrt den
-      # Thread bewusst nicht an: weder oeffnen noch schliessen, weil der Lauf
-      # nichts ueber die Quellen festgestellt hat.
+      # Das Ergebnis steht IMMER im Log, auch wenn der Job gruen bleibt. Sonst
+      # waere ein `unknown` am ersten oder zweiten Tag von einem `clear` nicht
+      # zu unterscheiden — und genau das ist der Fall, den dieser Melder nie
+      # verwischen darf.
+      - name: Ergebnis im Log nennen
+        env:
+          LIVE_STATE: ${{ steps.verdict.outputs.state }}
+          LIVE_REASON: ${{ steps.verdict.outputs.reason }}
+          LIVE_RED_REASON: ${{ steps.verdict.outputs.red_reason }}
+          LIVE_STREAK: ${{ steps.verdict.outputs.streak }}
+        run: |
+          echo "Live-Suite: $LIVE_STATE (Serie ohne Messung: $LIVE_STREAK)"
+          echo "$LIVE_REASON"
+          echo "Rot-Entscheid: $LIVE_RED_REASON"
+
+      # Erst hier wird der Job rot, und `red` entscheidet das — nicht `state`.
+      # `finding` ist sofort rot: da wurde etwas gemessen. `unknown` sammelt und
+      # wird erst ab dem dritten Lauf in Folge rot, weil arXiv nach IP drosselt
+      # und GitHub-Runner ihre IPs mit aller Welt teilen: Der Zeitplan lief vom
+      # 13. bis 15.9.2026 taeglich rot, ohne dass an den Quellen etwas war. Ein
+      # Haken, der jeden Tag rot steht, wird zur Tapete — und mit ihm der
+      # naechste, der etwas bedeutet.
+      #
+      # Gruen heisst dabei NICHT entwarnt: Der Zustand bleibt `unknown`, und der
+      # Schritt, der das Drift-Issue schliesst, haengt unveraendert an `clear`.
+      # `unknown` ruehrt den Thread weiterhin nicht an — weder oeffnen noch
+      # schliessen, weil der Lauf nichts ueber die Quellen festgestellt hat.
       #
       # Ohne Branch-Bedingung: Ein Dispatch auf einem Feature-Branch soll rot
       # werden duerfen, er darf nur das Issue nicht anfassen — genau die
@@ -155,11 +204,13 @@ jobs:
       # Parser-Meldung ueber eine fremde Datei enthalten, und `${{ }}` setzt sie
       # vor dem Start woertlich in die Shell ein.
       - name: Ergebnis durchreichen
-        if: steps.verdict.outputs.state != 'clear'
+        if: steps.verdict.outputs.red == 'true'
         env:
           LIVE_STATE: ${{ steps.verdict.outputs.state }}
           LIVE_REASON: ${{ steps.verdict.outputs.reason }}
+          LIVE_RED_REASON: ${{ steps.verdict.outputs.red_reason }}
         run: |
           echo "Live-Suite: $LIVE_STATE"
           echo "$LIVE_REASON"
+          echo "$LIVE_RED_REASON"
           exit 1

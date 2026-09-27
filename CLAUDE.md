@@ -516,8 +516,39 @@ Nicht-Lauf hin entwarnt, ist schlimmer als keiner.
 Deshalb liest die Einordnung das JUnit-XML statt des Exit-Codes: Der Exit-Code
 sagt `0` für «alles grün» und für «alles übersprungen» dasselbe, das XML zählt
 Tests, Übersprungene, Fehlschläge und Fehler getrennt. `finding` öffnet oder
-kommentiert, `clear` schliesst, `unknown` lässt den Thread in Ruhe und macht den
-Job rot. Sie steht in `scripts/` und nicht in einem `run:`-Block, weil der
+kommentiert, `clear` schliesst, `unknown` lässt den Thread in Ruhe.
+
+**Rot wird der Job nicht mehr bei jedem `unknown`** (seit 27.9.2026): `finding`
+ist sofort rot, `unknown` erst beim **dritten Lauf in Folge**
+(`UNKNOWN_RUNS_UNTIL_RED`). Grund ist gemessen, nicht vermutet: arXiv drosselt
+nach IP, GitHub-Runner teilen ihre IPs mit aller Welt, und der Zeitplan lief vom
+13. bis 15.9.2026 täglich rot, ohne dass an den Quellen etwas war. Ein Haken,
+der jeden Tag rot steht, wird zur Tapete — und mit ihm der nächste, der etwas
+bedeutet; dieselbe Erosion, die weiter oben schon drei rote Tage auf `main`
+gekostet hat.
+
+Gezählt werden **Läufe**, nicht Kalendertage. Beim täglichen Zeitplan ist das
+dasselbe, ein zusätzliches `workflow_dispatch` zählt aber mit. `clear` **und**
+`finding` setzen die Serie zurück — auch `finding`, denn ein Lauf mit Befund hat
+die Quellen ja erreicht.
+
+**Grün ist dabei keine Entwarnung.** Der Zustand bleibt `unknown`, und der
+Schritt, der das Drift-Issue schliesst, hängt unverändert an `clear`. Ginge ein
+mildes `unknown` dort als `clear` durch, machte der Melder ein offenes Issue zu,
+ohne dass eine Quelle geantwortet hätte — der teuerste Fehler, den dieses Skript
+verhindern soll. `test_gruen_ist_keine_entwarnung` hält das fest.
+
+Die Serie überlebt einen Lauf im **Actions-Cache** (`live-state.json`), nicht in
+einem Commit oder Issue: Er braucht keine zusätzliche Berechtigung und ist je
+Branch getrennt, sodass ein Dispatch auf einem Feature-Branch den Zähler des
+Default-Branch nicht verdirbt. Geht der Cache verloren, beginnt die Serie bei 0
+— der Job wird dann **später** rot, nie früher, und die Einordnung sagt es im
+Log. Ein stiller Verlust wäre schlimmer als ein später Haken.
+
+Die Verdrahtung ist selbst geprüft: `test_der_workflow_haengt_an_red_nicht_an_state`
+liest `live-sources.yml` und fällt, wenn der Schluss wieder an `state != 'clear'`
+hängt oder die Cache-Schritte fehlen. Ein Skript, das `red` ausgibt, und ein
+Workflow, der es nicht liest, wären zusammen wirkungslos. Sie steht in `scripts/` und nicht in einem `run:`-Block, weil der
 einzige Teil des Workflows, der etwas behauptet, sonst an der einzigen Stelle
 läge, an der ihn niemand testen kann — `tests/test_classify_live_run.py`.
 
