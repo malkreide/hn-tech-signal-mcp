@@ -94,7 +94,7 @@ jobs:
       # 0: Der Job wird dann SPAETER rot, nie frueher, und die Einordnung sagt
       # es im Log. Ein stiller Verlust waere schlimmer als ein spaeter Haken.
       - name: Serie des vorigen Laufs holen
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: live-state.json
           key: live-unknown-streak-${{ github.run_id }}
@@ -115,7 +115,7 @@ jobs:
       # Schluessel je Lauf, weil ein Cache-Eintrag unveraenderlich ist; gelesen
       # wird oben ueber das Praefix.
       - name: Serie fuer den naechsten Lauf ablegen
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: live-state.json
           key: live-unknown-streak-${{ github.run_id }}
