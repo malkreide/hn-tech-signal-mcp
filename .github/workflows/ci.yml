@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Von Hand startbar. Ohne diesen Schluessel laufen die Gates nur auf `push`
+  # nach `main` und auf einen PR; wer sie auf `main` ohne Aenderung erneut
+  # fahren will, braucht einen Vorwand-Commit. Am 3.10.2026 kam genau diese
+  # Frage — ein roter Lauf sollte nach der Behebung erneut laufen, die Behebung
+  # lag aber schon eine Woche in `main` und zu aendern war nichts mehr. Ein
+  # Leer-Commit dafuer steht fuer immer in der Historie, der Dispatch kostet
+  # nichts.
+  workflow_dispatch:
 
 jobs:
   test:

@@ -480,6 +480,36 @@ einzelne Testdatei fällt daran, nicht am Test. Die ruff-Pfade stehen ohne
 Schrägstrich (`src tests scripts`) — dasselbe Ergebnis, aber beim Kopieren
 zwischen Repos nicht verwechseln.
 
+**`ci.yml` ist von Hand startbar** (`workflow_dispatch`, seit 4.10.2026). Ohne
+den Schlüssel laufen die Gates nur auf `push` nach `main` und auf einen PR; wer
+sie auf `main` ohne Änderung erneut fahren will, braucht einen Vorwand-Commit.
+Am 3.10.2026 kam genau diese Frage — ein roter Lauf sollte nach der Behebung
+erneut laufen, die Behebung lag aber schon eine Woche in `main` und zu ändern
+war nichts mehr. Ein Leer-Commit dafür steht für immer in der Historie, der
+Dispatch kostet nichts. Dass der Schlüssel da ist, hält
+`tests/test_ci_workflow.py` fest, und zwar als Schlüssel im `on:`-Block und
+nicht als Zeichenfolge irgendwo in der Datei: Ein auskommentiertes
+`# workflow_dispatch:` ist kein Knopf, würde einen Teilstring-Test aber
+erfüllen.
+
+**Dass er wirkt, ist gemessen und nicht aus der Dokumentation geschlossen.**
+Der Dispatch lief, *bevor* der Schlüssel in `main` war: Lauf #179 vom
+4.10.2026, `event: workflow_dispatch`, auf `claude/github-actions-error-dmovih`,
+grün über alle drei Python-Versionen, während `main` ihn noch nicht trug. Die
+geläufige Lesart «`workflow_dispatch` wirkt erst vom Standard-Branch aus»
+trifft es also nicht: Registriert ist der Workflow über seinen Pfad, und
+`.github/workflows/ci.yml` gab es auf `main` längst; gefahren wird dann die
+Fassung des angefragten Refs. **Nicht gemessen** ist der andere Fall — eine
+Workflow-Datei, die es auf `main` überhaupt noch nicht gibt. Wer von hier auf
+den schliesst, hat es erfunden.
+
+Zweierlei daran ist übertragbar. Ein `204` auf den Dispatch-Endpunkt ist kein
+gestarteter Lauf, sondern eine angenommene Anfrage — der Beleg ist der Eintrag
+in der Lauf-Liste, nicht der Statuscode. Und ein Dispatch auf einem
+Feature-Branch kostet nichts und beantwortet die Frage in einer Minute; die
+Alternative war, der Dokumentation zu glauben und den Absatz mit einer
+Behauptung zu schreiben, die niemand geprüft hat.
+
 **Das Versions-Sync-Gate gehört dazu.** `scripts/` enthält
 `check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py`,
 `classify_live_run.py` und `record_fixtures.py`. Die Version ist `dynamic` und kommt aus
@@ -596,7 +626,7 @@ den roten Haken für einen gescheiterten Nachzug hält.
 
 **Live-Tests (DRIFT-005, behoben):** `live-sources.yml` fährt die
 `@pytest.mark.live`-Tests gegen HackerNews, arXiv, Lobste.rs und GitHub —
-täglich 05:17 UTC, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
+täglich nach `cron: "17 5 * * *"`, dazu `workflow_dispatch`. Ein roter Lauf eröffnet ein Issue
 mit Label `live-drift` oder kommentiert das offene, ein grüner schliesst es
 wieder; ohne das sieht ein roter Zeitplan niemand, und ein Melder, der nie
 entwarnt, wird ignoriert. Beides nur auf dem Default-Branch: ein grüner
@@ -609,6 +639,39 @@ auf keine der beiden Zählweisen passt. Alle drei Zahlen dieses Satzes prüft
 `scripts/check_claude_md.py` — «12 deselected» gehört dazu, weil ein Nachzug an
 nur einer Hälfte den Satz still in sich widersprüchlich machte.
 Der Workflow installiert bewusst kein ruff — der Pin bleibt einmalig.
+
+**Der Cron-Ausdruck ist keine Startzeit.** `17 5 * * *` steht seit dem
+14.8.2026 unverändert in der Datei — einmal gesetzt, nie geändert, nachgeprüft
+mit `git log --follow -p` auf die Zeile. Eingehalten hat GitHub ihn in keinem
+einzigen der 50 geplanten Läufe (#5–#54, 15.8.–3.10.2026), und der Verzug ist
+nicht konstant:
+
+| Zeitraum | Läufe | Start (UTC) | Verzug |
+|---|---|---|---|
+| 15.8.–26.8. | 12 | 05:42–05:53 | 25–37 min |
+| 27.8.–28.8. | 2 | 16:32–17:27 | 11 h 15–12 h 10 |
+| 29.8.–3.10. | 36 | 09:06–11:42 | 3 h 50–6 h 25 |
+
+Zwei Dinge sind daran brauchbar. **Kein Lauf startete je vor 05:42 UTC** — der
+Zeitplan feuert nie zu früh, nur zu spät. Und seit dem 29.8. liegt das Band
+sechsunddreissig Läufe lang zwischen 09:06 und 11:42; wer einen Lauf im Fenster
+um 05:17 sucht, findet keinen und hält den Zeitplan für ausgefallen.
+
+**Warum sich das Band verschoben hat, ist nicht gemessen.** An der Datei lag es
+nicht, der Ausdruck ist derselbe; GitHub führt `schedule` als Best-Effort und
+verzögert bei Last — mehr als diese Zuordnung gibt die Messung nicht her. Wer
+aus dem dritten Regime ein Fenster für morgen macht, hat es erfunden: Die zwei
+Läufe vom 27./28.8. liefen elf und zwölf Stunden zu spät, unter demselben
+Ausdruck. Ob der Zeitplan noch läuft, beantwortet deshalb nur, **ob** für einen
+Tag ein Lauf existiert — nicht, wann er lief.
+
+**Beinahe falsch aufgeschrieben.** Der erste Entwurf dieses Absatzes nannte
+«09:53 bis 11:42 UTC» als *die* Startzeit. Die Spanne stammte aus den letzten
+zwölf Läufen, die alle im dritten Regime liegen — für dieses Fenster richtig,
+als Aussage über den Zeitplan erfunden. Aufgefallen ist es erst, weil die
+Abfrage auf alle 50 Läufe erweitert wurde, statt die zwölf für den Bestand zu
+nehmen; dieselbe Klasse wie die drei gesperrten Zeitpunkte weiter oben, aus
+denen keine Dauer wird.
 
 **Fixtures: aufgezeichnet.** `tests/fixtures/` hält 44 echte Antworten;
 Herkunft, Schlüssel, Auswahlregel und SHA-256 stehen je Datei in
