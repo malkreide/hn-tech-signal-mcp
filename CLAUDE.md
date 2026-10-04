@@ -492,6 +492,24 @@ nicht als Zeichenfolge irgendwo in der Datei: Ein auskommentiertes
 `# workflow_dispatch:` ist kein Knopf, würde einen Teilstring-Test aber
 erfüllen.
 
+**Dass er wirkt, ist gemessen und nicht aus der Dokumentation geschlossen.**
+Der Dispatch lief, *bevor* der Schlüssel in `main` war: Lauf #179 vom
+4.10.2026, `event: workflow_dispatch`, auf `claude/github-actions-error-dmovih`,
+grün über alle drei Python-Versionen, während `main` ihn noch nicht trug. Die
+geläufige Lesart «`workflow_dispatch` wirkt erst vom Standard-Branch aus»
+trifft es also nicht: Registriert ist der Workflow über seinen Pfad, und
+`.github/workflows/ci.yml` gab es auf `main` längst; gefahren wird dann die
+Fassung des angefragten Refs. **Nicht gemessen** ist der andere Fall — eine
+Workflow-Datei, die es auf `main` überhaupt noch nicht gibt. Wer von hier auf
+den schliesst, hat es erfunden.
+
+Zweierlei daran ist übertragbar. Ein `204` auf den Dispatch-Endpunkt ist kein
+gestarteter Lauf, sondern eine angenommene Anfrage — der Beleg ist der Eintrag
+in der Lauf-Liste, nicht der Statuscode. Und ein Dispatch auf einem
+Feature-Branch kostet nichts und beantwortet die Frage in einer Minute; die
+Alternative war, der Dokumentation zu glauben und den Absatz mit einer
+Behauptung zu schreiben, die niemand geprüft hat.
+
 **Das Versions-Sync-Gate gehört dazu.** `scripts/` enthält
 `check_ruff_pin.py`, `check_version_sync.py`, `check_claude_md.py`,
 `classify_live_run.py` und `record_fixtures.py`. Die Version ist `dynamic` und kommt aus
