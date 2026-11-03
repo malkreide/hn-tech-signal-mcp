@@ -1505,6 +1505,128 @@ async def test_digest_github_raises_only_when_every_topic_fails():
 
 
 # ---------------------------------------------------------------------------
+# GitHub: eine abgeschnittene Suche ist keine leere Suche
+#
+# GitHub bricht eine Suche an seinem Zeitlimit ab und liefert dann, was es bis
+# dahin hatte — womoeglich nichts —, mit HTTP 200 und `incomplete_results`. Am
+# 29.10.2026 kam fuer `topic:llm` eine leere Liste an (Lauf #80), am Tag danach
+# standen dort 5564 Repos. Ob es dieser Mechanismus war, ist nicht gemessen:
+# der Server warf das Feld weg. Die Form der Antwort ist es — handgeschrieben
+# bleibt hier nur der Abbruch selbst, der sich nicht auf Zuruf aufzeichnen
+# laesst.
+# ---------------------------------------------------------------------------
+
+GITHUB_ABGESCHNITTEN = {"total_count": 5564, "incomplete_results": True, "items": []}
+
+
+async def _trending(**kwargs) -> dict:
+    """Ueber die SDK-Schicht, damit ein Feld ohne Platz im Schema auffaellt."""
+    from hn_tech_signal_mcp.server import GithubTrendingAiInput, github_trending_ai
+
+    eingabe = {"topic": "llm", "limit": 3, "min_stars": 100, **kwargs}
+    return json.loads(await _ueber_das_sdk(github_trending_ai, GithubTrendingAiInput(**eingabe)))
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_github_meldet_eine_abgeschnittene_suche():
+    """Null Treffer mit `incomplete_results` ist kein leeres Topic."""
+    respx.get(GITHUB_SEARCH).mock(return_value=httpx.Response(200, json=GITHUB_ABGESCHNITTEN))
+
+    data = await _trending()
+    assert data["count"] == 0
+    assert data["incomplete_results"] is True, data
+    assert "time limit" in data["note"]
+    assert "not the size" in data["note"]
+    assert data["total_found"] == 5564
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_github_ohne_abbruch_traegt_kein_incomplete_feld():
+    """Die Gegenrichtung: eine vollstaendige Suche bleibt ohne Hinweis.
+
+    Ein Hinweis, der immer dasteht, wird ueberlesen — wie `incomplete_categories`
+    bei arXiv nur dann, wenn wirklich etwas fehlt.
+    """
+    vollstaendig = {"total_count": 1, "incomplete_results": False, "items": [_repo("owner/x")]}
+    respx.get(GITHUB_SEARCH).mock(return_value=httpx.Response(200, json=vollstaendig))
+
+    data = await _trending()
+    assert data["count"] == 1
+    assert "incomplete_results" not in data, data
+    assert "note" not in data, data
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_eine_abgeschnittene_github_suche_wird_nicht_gecacht():
+    """Sonst bediente der Cache die leere Liste weiter, wenn GitHub laengst
+    wieder vollstaendig antwortet."""
+    route = respx.get(GITHUB_SEARCH).mock(
+        return_value=httpx.Response(200, json=GITHUB_ABGESCHNITTEN)
+    )
+    await _trending()
+    await _trending()
+    assert route.call_count == 2
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_eine_vollstaendige_github_suche_wird_gecacht():
+    """Die Kontrolle zum Test darueber: ohne Abbruch greift der Cache.
+
+    Ohne sie bestuende der Test darueber auch dann, wenn der Cache in dieser
+    Umgebung gar nicht arbeitete.
+    """
+    vollstaendig = {"total_count": 1, "incomplete_results": False, "items": [_repo("owner/x")]}
+    route = respx.get(GITHUB_SEARCH).mock(return_value=httpx.Response(200, json=vollstaendig))
+    await _trending()
+    await _trending()
+    assert route.call_count == 1
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_digest_nennt_ein_abgeschnittenes_topic():
+    """Ein abgeschnittenes Topic ist unvollstaendig, aber nicht ausgefallen:
+    seine Teiltreffer bleiben, die Quelle gilt nicht als gestoert, und der Digest
+    wird nicht gecacht."""
+    from hn_tech_signal_mcp.server import _cache
+
+    teil = {"total_count": 3173, "incomplete_results": True, "items": [_repo("owner/teil")]}
+    _mock_digest_sources(github={"mcp": httpx.Response(200, json=teil)})
+
+    data = json.loads(await _digest())
+    github = data["sources"]["github"]
+    assert github["incomplete_topics"] == ["mcp"]
+    assert "owner/teil" in [r["name"] for r in github["repos"]]
+    assert data["degraded_sources"] == []
+    assert "error" not in github
+    assert not any(k.startswith("digest|") for k in _cache)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_ein_rundum_abgeschnittener_digest_ist_kein_ausfall():
+    """Alle drei Topics abgeschnitten heisst: GitHub hat geantwortet, nur knapp.
+
+    `_fetch_digest_github` wirft nur, wenn JEDES Topic gescheitert ist. Zaehlte
+    ein Abbruch als Scheitern, kaeme hier ein Fehler statt einer Sektion an —
+    und das Modell laese «GitHub ist ausgefallen», wo GitHub antwortete.
+    """
+    leer = httpx.Response(200, json=GITHUB_ABGESCHNITTEN)
+    _mock_digest_sources(github={t: leer for t in ("llm", "ai-agents", "mcp")})
+
+    data = json.loads(await _digest())
+    github = data["sources"]["github"]
+    assert data["degraded_sources"] == []
+    assert "error" not in github
+    assert github["count"] == 0
+    assert github["incomplete_topics"] == ["llm", "ai-agents", "mcp"]
+
+
+# ---------------------------------------------------------------------------
 # Live integration tests – require network
 # ---------------------------------------------------------------------------
 
@@ -1770,7 +1892,12 @@ async def test_live_github_trending():
         github_trending_ai, GithubTrendingAiInput(topic="llm", limit=3, min_stars=100)
     )
     data = _live_json(result, "GitHub")
-    assert data["count"] > 0
+    # Am 29.10.2026 stand hier nur `assert 0 > 0` im Log — und damit nichts,
+    # was «Topic leer» von «GitHub hat abgebrochen» unterscheidet. Die Felder,
+    # die das koennen, gehoeren in die Meldung, nicht in die Vermutung danach.
+    assert data["count"] > 0, {
+        k: data.get(k) for k in ("total_found", "incomplete_results", "note")
+    }
     assert data["repos"][0]["stars"] >= 100
 
 

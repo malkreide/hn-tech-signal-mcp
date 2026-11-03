@@ -280,6 +280,56 @@ kleine Kategorie also nicht bis `limit` füllen. Das weist `arxiv_latest` als
 `incomplete_categories` aus, statt stillschweigend weniger zu liefern: Ohne
 diesen Hinweis hält das Modell die kurze Liste für den Bestand der Quelle.
 
+**Nachtrag 29.10./3.11.2026: ein 200 mit nichts drin.** Lauf #80
+(40866137549) war rot mit `test_live_github_trending` — `assert 0 > 0`. GitHub
+hatte für `topic:llm stars:>=100` eine leere Liste geliefert. Am Tag davor und
+an den vier Tagen danach war derselbe Test auf demselben Commit grün, und am
+3.11. standen dort 5564 Repos. Der Klassifikator buchte den Lauf als `finding`
+und eröffnete Issue #83; der nächste grüne Lauf schloss es.
+
+Ausgeschlossen ist alles, was eine Fehlerzeile erzeugt hätte: `_get` ruft
+`raise_for_status()`, ein 403, 422, 429 oder 5xx und jeder Timeout wären als
+`[GitHub] Error: …` angekommen statt als JSON. GitHub hat also mit 2xx
+geantwortet. Einen öffentlichen Vorfall bei Search oder API führt
+githubstatus.com für den Zeitpunkt nicht, nur einen bei Copilot-Agent-Sessions.
+
+**Was GitHub geliefert hat, ist nicht gemessen — weil der Server es
+wegwarf.** Die Spec der Search-API beschreibt den naheliegenden Mechanismus:
+Läuft eine Abfrage zu lange, kommen die bis dahin gefundenen Treffer mit 200
+und `incomplete_results: true`. `github_trending_ai` las nur `items` und
+`total_count`, und der Test meldete nur `0 > 0`, nicht einmal das
+`total_found`, das der Server mitlieferte. Der Lauf hatte die Information, die
+ihn erklärt hätte, und hat sie verworfen.
+
+Das ist der Absatz über die Drosselung, andersherum gelesen: dort wäre eine
+Störung beinahe als Schemawechsel durchgegangen, hier ging womöglich eine
+Störung als gewöhnliche Antwort durch — als 200. Der vorformulierte Satz im
+Issue, die Quelle habe ihr Schema geändert, war wieder falsch.
+
+Vier Handgriffe daraus:
+
+- **Was die Quelle über ihre Vollständigkeit sagt, gehört in die Antwort.**
+  `github_trending_ai` reicht `incomplete_results` jetzt mit einem `note` durch,
+  der Digest führt ein abgeschnittenes Topic unter `incomplete_topics` —
+  dasselbe Muster wie `incomplete_categories` bei arXiv, das hier fehlte. Ein
+  abgeschnittenes Ergebnis wird nicht gecacht, und es ist kein Ausfall: Ein
+  Digest, dessen drei Topics alle abgeschnitten sind, meldet GitHub nicht als
+  gestört. Das neue Feld braucht seinen Platz im `outputSchema`, sonst scheitert
+  der Aufruf — die Gegenprobe hat genau das gezeigt.
+- **Ein Fehlschlag trägt die Felder, die ihn einordnen.** Der Live-Test nennt
+  bei `count == 0` jetzt `total_found`, `incomplete_results` und `note`. Ein
+  zweiter solcher Lauf ist in zwei Minuten eingeordnet statt gar nicht.
+- **Noch keine Regel auf Verdacht.** Ob «leer und abgeschnitten» künftig
+  `unknown` statt `finding` sein soll, bleibt offen, bis ein Lauf es zeigt. Ein
+  einziger, nicht belegter Fall trägt keine Ausnahme im Klassifikator.
+- **Eine Positivkontrolle muss denselben Weg nehmen wie die Anfrage, für die
+  sie bürgt.** Am 3.11. lieferte `cat:cs.AI` mit `max_results=1` HTTP 200 nach
+  0,3 s; die OR-Abfrage des Recorders lief Sekunden danach in Timeouts. Eine
+  einfache, häufig gestellte Abfrage kommt bei arXiv aus dem Fastly-Cache und
+  erreicht den Limiter nie — sie sagt über die gedrosselte Anfrage nichts. Das
+  Gegenstück zur 406 vom 27.9.: dort kippte die Kontrolle einen Fehlbefund,
+  hier hätte sie einen erzeugt.
+
 **Dieselbe Falle bei einer Konfigurationsoption: die Vorgabe lesen, bevor man
 einen Schlüssel für wirkungslos hält.** Am 29.8.2026 fielen die
 `labels:`-Zeilen aus den `dependabot.yml` des Portfolios, begründet mit
@@ -728,6 +778,33 @@ Retry-Grund: vier Versuche, 14 Sekunden Backoff, danach ein `raise`, der den
 ganzen restlichen Plan mitnahm. Eng gefasst: eine 403 **ohne** diese Signatur
 läuft weiter durch den Backoff, sonst wäre eine einmal schliessende Quelle
 dauerhaft ohne Aufzeichnung.
+
+**Stand 3.11.2026: die Sperre ist weg, die Lücke noch nicht.** Dieselbe
+Signatur, die die Sperre belegt hatte, belegt jetzt das Gegenteil:
+`search/repositories` antwortet aus der Aufnahmeumgebung mit 200, mit
+`Server: github.com`, einer `X-Github-Request-Id` und
+`X-Ratelimit-Resource: search` — zweimal gemessen, dazu `topic:mcp` als zweiter
+Pfad. Die Anfrage erreicht GitHub.
+
+Aufgezeichnet ist trotzdem noch nichts, und zwar wegen einer anderen Quelle:
+Der Recorder schreibt einen ganzen Satz mit einem Aufnahmedatum, und arXiv
+hielt ihn am 3.11. dreimal auf (429, dann Timeouts). Eine reine
+GitHub-Aufzeichnung daneben wäre falsch — das Aufräumen am Ende entfernt alles,
+was der Lauf nicht erzeugt hat, also die übrigen 44 Belege.
+
+**Was beim nächsten vollständigen Lauf rot wird, ist gewollt.** Mit einer
+simulierten `github_1.json` gemessen: `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet`
+fällt, weil die Lücke geschlossen, aber in `NICHT_VON_HIER` noch begründet ist;
+`test_keine_aufzeichnung_liegt_unbenutzt_herum` fällt, weil kein Test die neue
+Aufzeichnung abspielt. Beides zwingt den Nachzug, der dann fällig ist:
+`github_trending_ai` aus `NICHT_VON_HIER` nehmen, `github` in die Tabelle
+`WERKZEUGE` von `tests/test_recorded_fixtures.py` aufnehmen und
+`test_die_gesperrte_quelle_steht_begruendet_im_recorder` durch einen Test
+ersetzen, der die Aufzeichnung verlangt. `GESPERRT` und die Tests dazu bleiben
+stehen: die Sperre kann wiederkommen, und dann soll der Lauf sie wieder
+überspringen statt abzubrechen. (Die zwei weiteren roten Tests der Simulation —
+Nachweis und Prüfsumme — gehören dem Platzhalter, der nicht in
+`PROVENANCE.md` stand; ein echter Lauf schreibt beides selbst.)
 
 Alles Weitere (Tool-Übersicht, Setup, Beispiele) steht in `README.md`,
 `EXAMPLES.md` und `audits/`.
