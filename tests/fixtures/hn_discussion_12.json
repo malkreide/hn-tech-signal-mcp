@@ -1,0 +1,11 @@
+{
+  "by": "GodelNumbering",
+  "id": 50345802,
+  "kids": [
+    50346035
+  ],
+  "parent": 50341174,
+  "text": "I tried to reproduce this using Astra for a natural language to bash command small model[1][2], but got no net improvement. Editing 1,920 weights fixed some grep mistakes but broke other commands. I am guessing it is easier to improve behavior when it can be first pinpointed to a specific are of the model.<p><pre><code>  [1] https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=49966238\n  [2] https:&#x2F;&#x2F;news.ycombinator.com&#x2F;item?id=49869735</code></pre>",
+  "time": 1793662716,
+  "type": "comment"
+}

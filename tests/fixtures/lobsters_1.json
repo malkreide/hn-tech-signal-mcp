@@ -1,57 +1,60 @@
 [
   {
-    "short_id": "ivbx5f",
-    "created_at": "2026-09-27T01:22:21.194-05:00",
-    "title": "One month without AI",
-    "url": "https://blog.bustikiller.com/2026/09/25/one-month-without-ai.html",
-    "score": 17,
+    "short_id": "qvdatp",
+    "created_at": "2026-11-02T10:30:58.517-06:00",
+    "title": "Jailbreaking my car's navigation system just so I can change the time",
+    "url": "https://blog.nns.ee/2026/11/02/renault-hack/",
+    "score": 99,
     "flags": 0,
-    "comment_count": 3,
+    "comment_count": 4,
     "description": "",
     "description_plain": "",
-    "submitter_user": "Jackevansevo",
-    "user_is_author": false,
+    "submitter_user": "xx",
+    "user_is_author": true,
     "tags": [
-      "vibecoding"
+      "linux",
+      "reversing",
+      "security"
     ],
-    "short_id_url": "https://lobste.rs/s/ivbx5f",
-    "comments_url": "https://lobste.rs/s/ivbx5f/one_month_without_ai"
+    "short_id_url": "https://lobste.rs/s/qvdatp",
+    "comments_url": "https://lobste.rs/s/qvdatp/jailbreaking_my_car_s_navigation_system"
   },
   {
-    "short_id": "hq6xj2",
-    "created_at": "2026-09-26T22:41:44.295-05:00",
-    "title": "Valve Introduces Pyrowave Video Codec In Beta For Low Latency Streaming",
-    "url": "https://www.phoronix.com/news/Valve-Steam-Beta-Pyrowave",
-    "score": 22,
+    "short_id": "wgoato",
+    "created_at": "2026-11-02T15:23:24.764-06:00",
+    "title": "A Decade of Kill Bugs",
+    "url": "https://alangrow.com/blog/a-decade-of-kill-bugs",
+    "score": 45,
     "flags": 0,
-    "comment_count": 3,
+    "comment_count": 4,
     "description": "",
     "description_plain": "",
-    "submitter_user": "AviKav",
-    "user_is_author": false,
+    "submitter_user": "acg",
+    "user_is_author": true,
     "tags": [
-      "graphics"
+      "historical",
+      "linux",
+      "unix"
     ],
-    "short_id_url": "https://lobste.rs/s/hq6xj2",
-    "comments_url": "https://lobste.rs/s/hq6xj2/valve_introduces_pyrowave_video_codec"
+    "short_id_url": "https://lobste.rs/s/wgoato",
+    "comments_url": "https://lobste.rs/s/wgoato/decade_kill_bugs"
   },
   {
-    "short_id": "uvmajz",
-    "created_at": "2026-09-26T15:45:24.308-05:00",
-    "title": "Rusty thoughts on \"Parse, don't validate\"",
-    "url": "https://eli.thegreenplace.net/2026/rusty-thoughts-on-parse-dont-validate/",
-    "score": 26,
-    "flags": 0,
-    "comment_count": 15,
+    "short_id": "qa0owz",
+    "created_at": "2026-11-02T13:22:32.608-06:00",
+    "title": "Stop Hardcoding Your Timeouts",
+    "url": "https://alfy.blog/2026/04/23/stop-hardcoding-your-timeouts.html",
+    "score": 42,
+    "flags": 3,
+    "comment_count": 7,
     "description": "",
     "description_plain": "",
-    "submitter_user": "carlana",
+    "submitter_user": "bahlo",
     "user_is_author": false,
     "tags": [
-      "programming",
-      "rust"
+      "practices"
     ],
-    "short_id_url": "https://lobste.rs/s/uvmajz",
-    "comments_url": "https://lobste.rs/s/uvmajz/rusty_thoughts_on_parse_don_t_validate"
+    "short_id_url": "https://lobste.rs/s/qa0owz",
+    "comments_url": "https://lobste.rs/s/qa0owz/stop_hardcoding_your_timeouts"
   }
 ]

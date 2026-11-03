@@ -2,192 +2,322 @@
 <feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
   <id>https://arxiv.org/api/CnxhjpxWdkh5nTbkX1oLtMzQ0vE</id>
   <title>arXiv Query: search_query=cat:cs.AI OR cat:cs.LG OR cat:cs.CL&amp;id_list=&amp;start=0&amp;max_results=6</title>
-  <updated>2026-09-27T11:06:07Z</updated>
+  <updated>2026-11-03T08:32:01Z</updated>
   <link href="https://arxiv.org/api/query?search_query=cat:cs.AI+OR+(cat:cs.LG+OR+cat:cs.CL)&amp;start=0&amp;max_results=6&amp;id_list=" type="application/atom+xml"/>
   <opensearch:itemsPerPage>6</opensearch:itemsPerPage>
-  <opensearch:totalResults>467132</opensearch:totalResults>
+  <opensearch:totalResults>485000</opensearch:totalResults>
   <opensearch:startIndex>0</opensearch:startIndex>
   <entry>
-    <id>http://arxiv.org/abs/2609.30266v1</id>
-    <title>LLM Agents Can Easily Tamper With Their Own Traces</title>
-    <updated>2026-09-24T17:59:54Z</updated>
-    <link href="https://arxiv.org/abs/2609.30266v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30266v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Asynchronous monitoring, incident investigations, and compliance audits primarily rely on agent traces to reconstruct what happened. These analyses assume that LLM agents cannot tamper with their own execution traces. We show that local LLM agents such as Claude Code, Codex, Antigravity, Open Code and Grok Build fail to enforce this boundary. All tested harnesses, except Muse Code, allowed agents to delete their traces when asked, without triggering monitor guardrails. We also validate that external attackers can exploit this gap to induce trace deletion. Finally, we show that trace tampering behavior emerges naturally in frontier models, when agents try to improve their rewards. We advise practitioners to ensure trace logging happens through an independent interception mechanism outside of the agent's control, preserving trace integrity even in cases of full host compromise. Overall, our findings identify a concrete failure of trace integrity in agent infrastructure which can be used to conceal misaligned behaviors like scheming or sabotage.</summary>
-    <category term="cs.CR" scheme="http://arxiv.org/schemas/atom"/>
+    <id>http://arxiv.org/abs/2611.03647v1</id>
+    <title>Pixel-UMI: Learning Environment-Aware Whole-Body Manipulation from Sensorized Human Demonstrations</title>
+    <updated>2026-11-02T18:59:32Z</updated>
+    <link href="https://arxiv.org/abs/2611.03647v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03647v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Sensorized human demonstrations offer scalable data for mobile manipulation, but embodiment differences complicate policy learning. We present Pixel-UMI, a pipeline for learning environment-aware whole-body policies from human data. We first introduce Environment-Aware Retargeting (EAR), which combines reconstructed scene geometry with demonstrated head and gripper trajectories to determine robot posture and generate collision-aware joint and base targets. Delay-calibrated action assignment converts these trajectories into actions. However, kinematic differences can leave residual pose errors, creating viewpoint mismatches between human demonstrations and robot observations. We therefore introduce Retargeting-Error-Aware Masking (REAM), which uses these errors during training to reduce reliance on mismatched views at deployment. Finally, because estimated actions cannot fully capture contact-rich interactions, we collect on-policy human corrections through DAgger to improve performance. We evaluate Pixel-UMI on five challenging tasks spanning articulated-object manipulation, deformable-object handling, constrained-space reaching, whole-body collision avoidance, and contact-rich bimanual coordination, achieving 87.0% average task progress. Video results are available at https://pixel-robot.com/pixel-umi</summary>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:54Z</published>
-    <arxiv:primary_category term="cs.CR"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:59:32Z</published>
+    <arxiv:comment>Video results are available at https://pixel-robot.com/pixel-umi</arxiv:comment>
+    <arxiv:primary_category term="cs.RO"/>
     <author>
-      <name>Jeremy Qin</name>
+      <name>Jason Jingzhou Liu</name>
     </author>
     <author>
-      <name>David Schmotz</name>
+      <name>Tony Tao</name>
     </author>
     <author>
-      <name>Derck Prinzhorn</name>
+      <name>Deepak Pathak</name>
     </author>
     <author>
-      <name>Luca Beurer-Kellner</name>
-    </author>
-    <author>
-      <name>Ameya Prabhu</name>
-    </author>
-    <author>
-      <name>Maksym Andriushchenko</name>
+      <name>Ruslan Salakhutdinov</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2609.30264v1</id>
-    <title>AD-WM: Action-Discriminative World Models for Counterfactual Model Predictive Control</title>
-    <updated>2026-09-24T17:59:41Z</updated>
-    <link href="https://arxiv.org/abs/2609.30264v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30264v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Latent world models are typically trained to predict factual transitions, whereas model predictive control (MPC) must compare alternative actions from the same state. A model can therefore achieve low factual prediction error yet poorly distinguish candidate actions. We introduce AD-WM, an action-discriminative joint-embedding world model for counterfactual MPC. AD-WM combines residual latent dynamics with predictor-level action-recovery regularization, using inverse dynamics and a normalized recovery objective motivated by conditional mutual information. Both objectives encourage planning transitions to preserve action information; their auxiliary heads are discarded at test time, leaving MPC unchanged. On OGBench-Cube, AD-WM improves hard-start success from 3.7% to 52.0% over a matched LeWM baseline and improves mean success over the reproduced baseline in four of five simulation environments. Planning diagnostics show that factual prediction error and whole-bank action ranking do not follow the closed-loop success ordering, whereas CEM-aligned elite regret tracks success more closely. With a frozen V-JEPA 2 encoder and matched DROID post-training, AD-WM also improves zero-shot transfer to our Franka setup, increasing basic pick-and-place success from 42.2% to 71.1% without lab-specific adaptation. These results suggest that world models for planning should preserve action-dependent differences needed for counterfactual selection, rather than optimize factual prediction accuracy alone. More videos and code are available at https://ad-wm.github.io/.</summary>
-    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <id>http://arxiv.org/abs/2611.03648v1</id>
+    <title>Pixel: A Co-Designed Full-Stack Robot System for Learning General-Purpose Mobile Manipulation</title>
+    <updated>2026-11-02T18:59:32Z</updated>
+    <link href="https://arxiv.org/abs/2611.03648v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03648v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>General-purpose mobile manipulation requires a combination of capable robot hardware, scalable demonstration collection, expressive whole-body control, and effective policy learning. Yet these components are often developed independently, creating mismatches that limit the capabilities of the complete system. We present Pixel, a co-designed full-stack system for learning general-purpose mobile manipulation. Pixel combines a low-cost wheeled humanoid with human-aligned kinematics and compliant grippers, multiple teleoperation and robot-free human data-collection interfaces, a unified whole-body controller, and a common policy learning pipeline across human and robot demonstrations. A hierarchical learning stack further enables language-conditioned visuomotor control and long-horizon task execution. We evaluate the system across hardware, data collection, and policy learning, and demonstrate mobile-manipulation behaviors requiring dexterity, active perception, navigation, and whole-body coordination. We hope that Pixel provides an integrated and extensible foundation for studying how robot hardware, data, control, and learning can be designed together for robot learning. More results at https://pixel-robot.com/pixel</summary>
     <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:41Z</published>
-    <arxiv:comment>9 pages, 5 figures, 4 tables. Project page: https://ad-wm.github.io/</arxiv:comment>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:59:32Z</published>
+    <arxiv:comment>More results at https://pixel-robot.com/pixel</arxiv:comment>
+    <arxiv:primary_category term="cs.RO"/>
+    <author>
+      <name>Tony Tao</name>
+    </author>
+    <author>
+      <name>Jason Jingzhou Liu</name>
+    </author>
+    <author>
+      <name>Ruslan Salakhutdinov</name>
+    </author>
+    <author>
+      <name>Deepak Pathak</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2611.03641v1</id>
+    <title>From Natural Language to Exact Cover: A Neuro-Symbolic Approach to Zebra Puzzles</title>
+    <updated>2026-11-02T18:58:21Z</updated>
+    <link href="https://arxiv.org/abs/2611.03641v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03641v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Chain-of-Thought (CoT) generation has substantially improved the performance of Large Language Models (LLMs) on complex reasoning tasks, including code generation, data analysis, and exam-style question answering. Despite these advances, purely neural LLMs continue to struggle with elementary logical reasoning problems and lack the determinism, soundness, and reliability characteristic of symbolic reasoning systems. Conversely, classical symbolic methods such as SAT solving and exact cover guarantee correctness and completeness, but require problems to be expressed in highly specialized formal encodings, limiting their applicability to natural language inputs. In this work, we present a synergistic neuro-symbolic framework that bridges this gap by combining neural semantic parsing with deterministic exact cover reasoning. Given a Zebra-style logic puzzle in natural language, an LLM translates entities and constraints into structured tool calls that construct an exact cover instance. A symbolic solver then computes the solution and provides feedback to iteratively refine invalid, under- or overconstrained encodings, exploiting the uniqueness property of Zebra puzzles. We conduct a comprehensive empirical evaluation across multiple parameter scales, post-training paradigms, and LLM families. The results demonstrate that our hybrid approach consistently outperforms strong plain neural baselines, including CoT prompting, as well as recent neuro-symbolic methods.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:58:21Z</published>
     <arxiv:primary_category term="cs.AI"/>
     <author>
-      <name>Jiabin Qiu</name>
+      <name>Paulius Skaisgiris</name>
     </author>
     <author>
-      <name>Zixuan Chen</name>
+      <name>Thomas Pammer</name>
     </author>
     <author>
-      <name>Hongye Cao</name>
+      <name>Veronika Semmelrock</name>
     </author>
     <author>
-      <name>Jieqi Shi</name>
+      <name>Mykyta Ielanskyi</name>
     </author>
     <author>
-      <name>Jing Huo</name>
+      <name>Maximilian Heisinger</name>
     </author>
     <author>
-      <name>Yang Gao</name>
+      <name>Erich Kobler</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2609.30258v1</id>
-    <title>Temporal Gradient Inversion for Private Trajectory Reconstruction in Embodied Reinforcement Learning</title>
-    <updated>2026-09-24T17:59:18Z</updated>
-    <link href="https://arxiv.org/abs/2609.30258v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30258v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Distributed learning in embodied reinforcement-learning agents offers a degree of privacy by retaining raw sensor data on-device and transmitting only policy gradients to the server. Yet temporal structure can amplify this leakage beyond single-frame attacks. We introduce Temporal Reconstruction Attack on Consecutive Encodings (TRACE), an amortized temporal gradient-inversion attack that autoregressively reconstructs the sequence of private observation-action trajectories from per-step policy-learning gradients. The attack exploits two structural signals ignored by prior single-frame methods: (i) cross-time correlation between successive embodied gradients, which we formalize via a conditional mutual-information bound, and (ii) closed-form action recovery from policy-head gradient structure, which we prove exact when standard entropy regularization is sufficiently small. On held-out embodied scenes, TRACE reaches $18.8$ dB PSNR with near-perfect action recovery at $3$-$4.5$ ms per reconstructed frame, dominating the learning-based baseline across all reconstruction metrics and exceeding optimization attacks while running orders of magnitude faster. Further evaluation demonstrates TRACE's broader applicability across recurrent, residual, and compact transformer victim architectures, multi-modal inputs, and larger discrete action spaces. Defense experiments suggest that protecting temporal gradient streams may require sequence-aware privacy mechanisms.</summary>
-    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:18Z</published>
-    <arxiv:comment>Accepted at NeurIPS 2026</arxiv:comment>
-    <arxiv:primary_category term="cs.LG"/>
-    <author>
-      <name>Sudip Bhujel</name>
-    </author>
-    <author>
-      <name>Shanghao Shi</name>
-    </author>
-    <author>
-      <name>Ruiquan Huang</name>
-    </author>
-    <author>
-      <name>Ning Zhang</name>
-    </author>
-    <author>
-      <name>Yang Xiao</name>
-    </author>
-  </entry>
-  <entry>
-    <id>http://arxiv.org/abs/2609.30250v1</id>
-    <title>Agentic Detection of Online Conspiracies</title>
-    <updated>2026-09-24T17:58:43Z</updated>
-    <link href="https://arxiv.org/abs/2609.30250v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30250v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Conspiratorial discourse on social media is not always expressed through explicit claims or stable lexical markers. The same surface content may express endorsement, legitimate concerns, criticism, satire, or mockery. The main challenge is therefore not only recognizing conspiracy-related claims, but inferring the speaker's intent -- the utterance's illocutionary force. We argue that this can be achieved through the use of relevant social contexts and propose an agentic framework, equipped with a set of tools supporting social queries.
-  We demonstrate the benefits of our approach on a unique dataset of Hebrew tweets, covering 80\%--90\% of the public Hebrew tweets published over a four-year span (late 2018-- early 2023), encompassing several election cycles as well as the COVID pandemic years and related vaccination campaigns. This extensive coverage can be used in recovering different social contexts. Evaluating our framework on a manually-annotated adversarial dataset, we find that context-aware workflows consistently outperform text-only classification and that the agentic framework performs significantly better than other frameworks and settings, including a non-agentic model exposed to the same contexts available to the agent. We further provide an analysis of the results, the errors and efficiency (token economy) tradeoffs.
-  These findings support viewing the task of conspiracy detection as a socially embedded interpretation task, in which effective classification depends not only on access to contexts, but also on adaptive reasoning in which the agent uses tools on a per-case basis, asking only for evidence relevant to its current reasoning step.</summary>
+    <id>http://arxiv.org/abs/2611.03634v1</id>
+    <title>WebHarbor: Docking Real Websites for Evolving GUI Agent Environments</title>
+    <updated>2026-11-02T18:57:36Z</updated>
+    <link href="https://arxiv.org/abs/2611.03634v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03634v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>GUI web agents require realistic and interactive environments that remain stable during both evaluation and training. Live website evaluation suffers from changing content, access restrictions, and limited coverage of authenticated workflows, while existing synthetic environments for training often lack functional depth and visual fidelity. We propose WebHarbor, a suite of 153 executable and dockerized website environments that faithfully reconstruct the visual interfaces, content, and functional workflows of real-world web services under deterministic control. We build WebHarbor through task-driven human-agent collaboration, where environments evolve as new tasks expand their functional scope, coding agents implement the required changes, and human contributors audit visual fidelity, functional correctness, and task validity. The resulting suite comprises 3,518 tasks spanning multi-step and post-authentication workflows, where existing works often fail to cover. Beyond reliable evaluation, WebHarbor provides high-fidelity synthetic web environments for cost-efficient reinforcement learning (RL). We demonstrate that a Qwen 4B-level GUI agent trained with RL in WebHarbor generalizes to unseen tasks and performs competitively with leading open-source GUI web agents across four benchmarks. The code and data are publicly available at https://github.com/aiming-lab/WebHarbor.</summary>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.CL" scheme="http://arxiv.org/schemas/atom"/>
     <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:58:43Z</published>
-    <arxiv:primary_category term="cs.CL"/>
+    <published>2026-11-02T18:57:36Z</published>
+    <arxiv:comment>31 pages</arxiv:comment>
+    <arxiv:primary_category term="cs.AI"/>
     <author>
-      <name>Lior Biton</name>
+      <name>Zhaoyang Wang</name>
     </author>
     <author>
-      <name>Oren Tsur</name>
+      <name>Qianhui Wu</name>
+    </author>
+    <author>
+      <name>Boyu Gou</name>
+    </author>
+    <author>
+      <name>Demi Wang</name>
+    </author>
+    <author>
+      <name>Jiacheng Zhang</name>
+    </author>
+    <author>
+      <name>Peichun Hua</name>
+    </author>
+    <author>
+      <name>Qize Li</name>
+    </author>
+    <author>
+      <name>Shi Qiu</name>
+    </author>
+    <author>
+      <name>Yifan Jiang</name>
+    </author>
+    <author>
+      <name>Yifan Zhang</name>
+    </author>
+    <author>
+      <name>Zexu Jin</name>
+    </author>
+    <author>
+      <name>Baolin Peng</name>
+    </author>
+    <author>
+      <name>Bolin Shen</name>
+    </author>
+    <author>
+      <name>Chetan Bansal</name>
+    </author>
+    <author>
+      <name>Dehan Kong</name>
+    </author>
+    <author>
+      <name>Deren Lei</name>
+    </author>
+    <author>
+      <name>Dongshen Peng</name>
+    </author>
+    <author>
+      <name>Fengqing Jiang</name>
+    </author>
+    <author>
+      <name>Hao Cheng</name>
+    </author>
+    <author>
+      <name>Haoqing Wang</name>
+    </author>
+    <author>
+      <name>Jiaming Shan</name>
+    </author>
+    <author>
+      <name>Jicheng Wang</name>
+    </author>
+    <author>
+      <name>Jingguang Zhou</name>
+    </author>
+    <author>
+      <name>Jixuan He</name>
+    </author>
+    <author>
+      <name>Kaide Zeng</name>
+    </author>
+    <author>
+      <name>Kangyu Zhu</name>
+    </author>
+    <author>
+      <name>Lama Moukheiber</name>
+    </author>
+    <author>
+      <name>Mufan Qiu</name>
+    </author>
+    <author>
+      <name>Peng Xia</name>
+    </author>
+    <author>
+      <name>Qihan Sun</name>
+    </author>
+    <author>
+      <name>Qingwei Lin</name>
+    </author>
+    <author>
+      <name>Qiushi Sun</name>
+    </author>
+    <author>
+      <name>Ruichen Zhang</name>
+    </author>
+    <author>
+      <name>Shuqing Luo</name>
+    </author>
+    <author>
+      <name>Si Qin</name>
+    </author>
+    <author>
+      <name>Sicheng Fan</name>
+    </author>
+    <author>
+      <name>Tao Xiong</name>
+    </author>
+    <author>
+      <name>Wenlin Yao</name>
+    </author>
+    <author>
+      <name>Xinyu Zhang</name>
+    </author>
+    <author>
+      <name>Xinyue Zeng</name>
+    </author>
+    <author>
+      <name>Xuanrui Li</name>
+    </author>
+    <author>
+      <name>Xuchao Zhang</name>
+    </author>
+    <author>
+      <name>Yian Wang</name>
+    </author>
+    <author>
+      <name>Yichao Liu</name>
+    </author>
+    <author>
+      <name>Yiming Liang</name>
+    </author>
+    <author>
+      <name>Yiyang Zhou</name>
+    </author>
+    <author>
+      <name>Yizhu Jiao</name>
+    </author>
+    <author>
+      <name>Yuetai Li</name>
+    </author>
+    <author>
+      <name>Yurun Chen</name>
+    </author>
+    <author>
+      <name>Yuxuan Zhang</name>
+    </author>
+    <author>
+      <name>Zheyuan Yang</name>
+    </author>
+    <author>
+      <name>Zhiyuan Yao</name>
+    </author>
+    <author>
+      <name>Zhongyang Li</name>
+    </author>
+    <author>
+      <name>Zihao Li</name>
+    </author>
+    <author>
+      <name>Zili Wang</name>
+    </author>
+    <author>
+      <name>Jianfeng Gao</name>
+    </author>
+    <author>
+      <name>Huaxiu Yao</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2609.30249v1</id>
-    <title>RAPID: Robot Agentic Programming from Demonstrations</title>
-    <updated>2026-09-24T17:58:21Z</updated>
-    <link href="https://arxiv.org/abs/2609.30249v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30249v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Coding agents have demonstrated enormous success in solving complex programming problems. To leverage their potential for robot systems, this work introduces Robot Agentic Programming from Demonstrations (RAPID), which automatically generates, verifies, and refines robot programs, given a single visual human demonstration. The iterative agentic loop of code refinement requires several key ingredients: (i) a testable task specification, (ii) action primitives for robot execution, and (iii) an interactive environment for program execution and verification. RAPID infers all three from the demonstration automatically. To make the resulting program reusable beyond the demonstration setting, RAPID uses an object-centric relational program representation that focuses on the underlying structure of the demonstrated strategy rather than the specific motion per se: it expresses the action primitives as trajectory-optimization programs that realize object-level motion effects, while composing them through relational constraints that capture scene-specific geometry at run time. We evaluated RAPID in simulation on eight challenging contact-rich nonprehensile manipulation tasks as well as general prehensile manipulation tasks in the LIBERO-Pro benchmark. We also successfully deployed it on a real Franka arm and evaluated on all eight nonprehensile tasks. In all experiments, RAPID demonstrated strong performance, with generalization over object pose, shape, material, and environment. Website: https://yuyaoliu.me/projects/rapid.</summary>
-    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:58:21Z</published>
-    <arxiv:primary_category term="cs.RO"/>
+    <id>http://arxiv.org/abs/2611.03633v1</id>
+    <title>Pretraining Data Scale Reverses the Muon-AdamW Fine-Tuning Gap</title>
+    <updated>2026-11-02T18:56:43Z</updated>
+    <link href="https://arxiv.org/abs/2611.03633v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03633v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Muon has recently emerged as a promising optimizer for pretraining large language models, offering a speedup over AdamW in minimizing pretraining loss. However, it remains unclear whether Muon's advantage persists after fine-tuning. In this paper, we study the downstream behavior of Muon and AdamW and uncover a surprising trend: beyond a sufficiently large pretraining data budget, AdamW outperforms Muon after fine-tuning. Moreover, as model size increases, AdamW overtakes Muon at progressively smaller pretraining token-parameter ratios. To explain this reversal, we view fine-tuning as a perturbation of the outputs and introduce the margin-to-spread ratio, which measures how far the correct logit lies above the wrong ones relative to how widely the wrong logits are spread. In language models, Muon has the larger margin-to-spread ratio at small data budgets and AdamW at large ones, mirroring the fine-tuning trend. In a linear associative memory, we prove that after one update the margin-to-spread ratio of gradient descent gains on that of Muon as the data budget grows, and simulations show that this trend persists after extended training.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:56:43Z</published>
+    <arxiv:primary_category term="cs.LG"/>
     <author>
-      <name>Yuyao Liu</name>
+      <name>Catherine Li</name>
     </author>
     <author>
-      <name>Jiayuan Mao</name>
+      <name>Jingchu Gai</name>
     </author>
     <author>
-      <name>David Hsu</name>
+      <name>Andrej Risteski</name>
     </author>
     <author>
-      <name>Leslie Pack Kaelbling</name>
+      <name>Jacob Mitchell Springer</name>
     </author>
     <author>
-      <name>Tomás Lozano-Pérez</name>
+      <name>Aditi Raghunathan</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2609.30247v1</id>
-    <title>Rolling-WAM: World Action Models with Rolling Imagination</title>
-    <updated>2026-09-24T17:58:03Z</updated>
-    <link href="https://arxiv.org/abs/2609.30247v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30247v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>World Action Models (WAMs) couple action generation with future visual prediction for robotic manipulation. However, completing the joint video-action denoising process at each replanning cycle incurs substantial latency, delaying action updates and limiting closed-loop responsiveness. We present Rolling-WAM, a formulation that distributes joint denoising across successive replanning cycles. Our method maintains a sliding window of video-action chunks at staggered noise levels. At each step, a rolling noise schedule fully denoises the imminent action chunk for execution, while partially refining farther-future chunks. As the window advances with new camera observations, the retained future chunks continue their denoising process. This distributes the computational cost over time while carrying an evolving visual-action context across chunk boundaries. Evaluations on LIBERO, RoboTwin, and a real-world Unitree G1 humanoid show that Rolling-WAM achieves competitive manipulation performance. By removing the need to denoise the entire prediction horizon from scratch, it delivers a 4.5x steady-state replanning speedup over standard joint WAMs.</summary>
-    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:58:03Z</published>
-    <arxiv:comment>10 pages, 7 figures, 5 tables. Under review. Project page: https://rolling-wam.github.io/</arxiv:comment>
-    <arxiv:primary_category term="cs.RO"/>
+    <id>http://arxiv.org/abs/2611.03627v1</id>
+    <title>Not All Reasoning Generalizes: A Case Study on Learning Generalizable Reasoning Strategies in RLVR</title>
+    <updated>2026-11-02T18:53:54Z</updated>
+    <link href="https://arxiv.org/abs/2611.03627v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03627v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Reinforcement learning with verifiable rewards (RLVR) can enable generalizable improvement for large language model (LLM) reasoning. This paper studies how to incentivize such generalization via reasoning strategies. We study this question with a controllable equation-solving framework: finding multiple inputs x for equations f(x)=y, where f is a non-bijective string function. This setting makes reasoning strategies observable while supporting a clear definition of easy-to-hard out-of-distribution (OOD) shifts, e.g., more solutions, longer y, etc. We uncover a subtle RLVR failure: it teaches the model to solve in-distribution tasks with high accuracy and structured step-by-step derivation, yet under OOD shifts, the same model abandons derivation and collapses to ineffective brute-force enumeration, causing sharp accuracy drops. This observation reveals the deeper challenges of RLVR generalization as it is neither incapable base model nor reward hacking, since the model succeeds in-distribution with the correct reasoning strategy. The key to mitigating this failure is an indirect intervention that surprisingly helps: co-training with bijective inversion tasks. Although these bijective tasks are actually not uniformly harder and even further from the non-bijective OOD evaluation, they make derivation more certain and substantially restore the correct strategy and accuracy under OOD shifts. This effect further motivates our theoretical analysis: outcome-only RLVR can shape reasoning processes through implicitly crediting the effective reasoning strategies more, even without process supervision. To conclude, our analysis framework and findings systematically reveal the crucial role and incentivization of reasoning strategies in RLVR generalization under OOD shifts. Code is available at https://github.com/ziqipang/rl_meta_thinking.</summary>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:53:54Z</published>
+    <arxiv:primary_category term="cs.LG"/>
     <author>
-      <name>Yinghua Zhou</name>
+      <name>Ziqi Pang</name>
     </author>
     <author>
-      <name>Junjie Ye</name>
-    </author>
-    <author>
-      <name>Yiqi Zhao</name>
-    </author>
-    <author>
-      <name>Hao Dong</name>
-    </author>
-    <author>
-      <name>Celina Shiyu Wang</name>
-    </author>
-    <author>
-      <name>Ruohai Ge</name>
-    </author>
-    <author>
-      <name>Tingyi Yang</name>
-    </author>
-    <author>
-      <name>Basile Van Hoorick</name>
-    </author>
-    <author>
-      <name>Gaurav Sukhatme</name>
-    </author>
-    <author>
-      <name>Vitor Guizilini</name>
-    </author>
-    <author>
-      <name>Yue Wang</name>
+      <name>Yu-Xiong Wang</name>
     </author>
   </entry>
 </feed>

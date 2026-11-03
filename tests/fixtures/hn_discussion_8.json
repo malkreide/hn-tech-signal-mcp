@@ -1,0 +1,12 @@
+{
+  "by": "jsenn",
+  "id": 50344881,
+  "kids": [
+    50345081,
+    50347198
+  ],
+  "parent": 50341174,
+  "text": "I feel like this is conflating 2 separate results in a slightly misleading way.<p>&gt; We find that frontier LLMs are surprisingly good at natively reading and writing neural network weights<p>This claim is backed up by the ability of Astra, given a text representation of the weights of tiny (20k) special-purpose models, to figure out what those models do and in some cases improve them beyond what RL could do <i>just by reading the weights with no tool calls</i>. They call this &quot;weight-space programming&quot;.<p>&gt; Likewise, asked to make Qwen3.5-0.8B better at math without gradients, Astra identifies an issue in its weights causing reasoning loops that Qwen’s own model card warns about, and fixes this by natively editing 0.016% of the weights<p>Here it did use tool calls, and seemingly used standard steering vector techniques to identify and fix reasoning loops in this small Qwen model. This doesn&#x27;t seem that related to the previous results.",
+  "time": 1793658495,
+  "type": "comment"
+}

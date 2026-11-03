@@ -1,0 +1,17 @@
+{
+  "by": "futureshock",
+  "id": 50342071,
+  "kids": [
+    50342460,
+    50342898,
+    50348975,
+    50342282,
+    50342471,
+    50345325,
+    50342334
+  ],
+  "parent": 50341174,
+  "text": "I find this just completely shocking. I’m definitely skeptical. It just doesn’t line up with my understanding of how these models work. Is there really enough training data on direct weight editing to give a model this skill? Maybe it’s evidence that OpenAI has been creating a lot of training data on ML research. I’m surprised that was put into a public facing model though.",
+  "time": 1793646960,
+  "type": "comment"
+}

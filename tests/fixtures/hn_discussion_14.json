@@ -1,0 +1,12 @@
+{
+  "by": "Imnimo",
+  "id": 50342074,
+  "kids": [
+    50343085,
+    50343472
+  ],
+  "parent": 50341174,
+  "text": "On balance I&#x27;m not <i>that</i> surprised that it can guess games by looking at the weights of a tiny neural net. A human can do the same by looking at the weights of an MLP trained on mnist, for example. With that simple structure, it&#x27;s easy to look at the input layer and see that features correspond to the spatial location of objects of interest.<p>I&#x27;m much more surprised that it can do this on larger models, although the details seem to suggest that it&#x27;s given a lot more freedom to run forward passes and do limited experiments, not just eyeball the weights.",
+  "time": 1793646962,
+  "type": "comment"
+}

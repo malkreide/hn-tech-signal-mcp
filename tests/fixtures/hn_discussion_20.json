@@ -1,0 +1,11 @@
+{
+  "by": "dumberquestions",
+  "id": 50342336,
+  "kids": [
+    50342710
+  ],
+  "parent": 50341174,
+  "text": "We don&#x27;t know the specifics of what type of ML related training Astra underwent, and it wouldn&#x27;t be crazy to find out that small model experiments are a big part of model training.<p>What&#x27;s surprising though is that I&#x27;d expect this type of training to be exclusive to internal model snapshots or at least heavily guardrailed against in public models.",
+  "time": 1793647877,
+  "type": "comment"
+}

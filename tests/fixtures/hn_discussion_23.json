@@ -1,0 +1,8 @@
+{
+  "by": "thingfyi",
+  "id": 50343731,
+  "parent": 50341174,
+  "text": "This is a big finding.<p>Omar and his team have been working on this line of research (e.g., DSPy) for the past couple of years. To be honest, I had always been skeptical about his approach of using LLMs to optimize LLMs. It was in my view borrowing Matei Zaharia&#x27;s research - Matei is Omar&#x27;s PhD advisor, also the CTO of Databrick - in big data (compiler optimization etc.) and forcing it to LLM systems. Along with some other projects from James Zou at Stanford etc. that build upon the same line of intuition.<p>Now, if this new result holds, I believe it&#x27;s a huge deal for AI research. It means that LLM systems can truly runtime self-optimize&#x2F;improve&#x2F;adapt. Congrats to Omar and his team. It really takes year to punch it through and convince the doubters :)",
+  "time": 1793653496,
+  "type": "comment"
+}

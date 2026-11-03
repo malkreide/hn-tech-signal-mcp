@@ -1,19 +1,15 @@
 {
-  "by": "ohjeez",
-  "descendants": 12,
-  "id": 49858424,
+  "by": "airhangerf15",
+  "descendants": 6,
+  "id": 50344912,
   "kids": [
-    49864726,
-    49863032,
-    49863123,
-    49862076,
-    49864584,
-    49862566,
-    49864108
+    50347246,
+    50348402,
+    50348137
   ],
-  "score": 37,
-  "time": 1790442105,
-  "title": "The Evolution of Vending Machines",
+  "score": 34,
+  "time": 1793658613,
+  "title": "V100 SXM2 pinout and NVLink reference",
   "type": "story",
-  "url": "https://www.saturdayeveningpost.com/2026/09/from-holy-water-to-frozen-meals-the-evolution-of-vending-machines/"
+  "url": "https://github.com/pigeon-labs-stack/v100-sxm2-reference"
 }

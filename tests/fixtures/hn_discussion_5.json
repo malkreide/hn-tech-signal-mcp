@@ -1,0 +1,20 @@
+{
+  "by": "vanyle",
+  "id": 50342657,
+  "kids": [
+    50343212,
+    50345257,
+    50344437,
+    50347079,
+    50344214,
+    50345890,
+    50344611,
+    50344852,
+    50344266,
+    50344963
+  ],
+  "parent": 50341174,
+  "text": "I don&#x27;t think this is an emergent capability. I think Astra was trained on neural weights data as an attempt by OpenAI to get to recursive self improvement.<p>Something similar happen in early GPT models which had a lot of chess game in standard notation in their training data which made them very good at chess as long as your prompt had the right format.<p>We&#x27;ll see if this attempt at RSI worked.",
+  "time": 1793649017,
+  "type": "comment"
+}

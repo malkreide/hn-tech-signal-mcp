@@ -1,31 +1,9 @@
 {
-  "by": "birdculture",
-  "descendants": 77,
-  "id": 49829202,
-  "kids": [
-    49862634,
-    49860990,
-    49856625,
-    49858893,
-    49863488,
-    49857319,
-    49860888,
-    49861036,
-    49861223,
-    49856441,
-    49829856,
-    49863051,
-    49863093,
-    49860397,
-    49857441,
-    49860065,
-    49857299,
-    49859808,
-    49857581
-  ],
-  "score": 176,
-  "time": 1790249636,
-  "title": "Modern Object Pascal Introduction for Programmers",
-  "type": "story",
-  "url": "https://castle-engine.io/modern_pascal"
+  "by": "slederer",
+  "id": 50339827,
+  "score": 1,
+  "time": 1793638841,
+  "title": "Bitmovin (YC S15) Is Hiring Technical Graduates in Denver (Engineering/CS Focus)",
+  "type": "job",
+  "url": "https://bitmovin.com/careers/8660599002/"
 }

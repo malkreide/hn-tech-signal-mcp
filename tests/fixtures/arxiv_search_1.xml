@@ -2,64 +2,92 @@
 <feed xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns="http://www.w3.org/2005/Atom">
   <id>https://arxiv.org/api/Sihv7M8qh44HktLRpAS846XvhmE</id>
   <title>arXiv Query: search_query=all:retrieval OR all:augmented OR all:generation&amp;id_list=&amp;start=0&amp;max_results=3</title>
-  <updated>2026-09-27T10:27:58Z</updated>
+  <updated>2026-11-03T08:31:59Z</updated>
   <link href="https://arxiv.org/api/query?search_query=all:retrieval+OR+(all:augmented+OR+all:generation)&amp;start=0&amp;max_results=3&amp;id_list=" type="application/atom+xml"/>
   <opensearch:itemsPerPage>3</opensearch:itemsPerPage>
-  <opensearch:totalResults>1009699</opensearch:totalResults>
+  <opensearch:totalResults>1032372</opensearch:totalResults>
   <opensearch:startIndex>0</opensearch:startIndex>
   <entry>
-    <id>http://arxiv.org/abs/2609.30268v1</id>
-    <title>Quantum Channel Stein Theorem beyond Definite Causal Order</title>
-    <updated>2026-09-24T17:59:57Z</updated>
-    <link href="https://arxiv.org/abs/2609.30268v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30268v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Distinguishability is a central concept in information theory and extends naturally to quantum systems. This work shows that, for any two finite-dimensional memoryless quantum channels, parallel, adaptive and general testing strategies achieve the same Stein exponent at every fixed type-I error tolerance $ε\in(0,1)$, namely the regularized channel relative entropy. When this rate is finite, any larger type-II exponent forces the probability of correctly accepting the null hypothesis to decay exponentially. Thus, adaptivity provides no asymptotic advantage. The key step is proving the continuity of the regularized sandwiched Rényi channel divergence at order one. We also derive the exact strong-converse exponent for general testers.</summary>
-    <category term="quant-ph" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:57Z</published>
-    <arxiv:comment>20 pages</arxiv:comment>
-    <arxiv:primary_category term="quant-ph"/>
+    <id>http://arxiv.org/abs/2611.03647v1</id>
+    <title>Pixel-UMI: Learning Environment-Aware Whole-Body Manipulation from Sensorized Human Demonstrations</title>
+    <updated>2026-11-02T18:59:32Z</updated>
+    <link href="https://arxiv.org/abs/2611.03647v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03647v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Sensorized human demonstrations offer scalable data for mobile manipulation, but embodiment differences complicate policy learning. We present Pixel-UMI, a pipeline for learning environment-aware whole-body policies from human data. We first introduce Environment-Aware Retargeting (EAR), which combines reconstructed scene geometry with demonstrated head and gripper trajectories to determine robot posture and generate collision-aware joint and base targets. Delay-calibrated action assignment converts these trajectories into actions. However, kinematic differences can leave residual pose errors, creating viewpoint mismatches between human demonstrations and robot observations. We therefore introduce Retargeting-Error-Aware Masking (REAM), which uses these errors during training to reduce reliance on mismatched views at deployment. Finally, because estimated actions cannot fully capture contact-rich interactions, we collect on-policy human corrections through DAgger to improve performance. We evaluate Pixel-UMI on five challenging tasks spanning articulated-object manipulation, deformable-object handling, constrained-space reaching, whole-body collision avoidance, and contact-rich bimanual coordination, achieving 87.0% average task progress. Video results are available at https://pixel-robot.com/pixel-umi</summary>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:59:32Z</published>
+    <arxiv:comment>Video results are available at https://pixel-robot.com/pixel-umi</arxiv:comment>
+    <arxiv:primary_category term="cs.RO"/>
     <author>
-      <name>Chengkai Zhu</name>
+      <name>Jason Jingzhou Liu</name>
     </author>
     <author>
-      <name>Xin Wang</name>
+      <name>Tony Tao</name>
     </author>
-  </entry>
-  <entry>
-    <id>http://arxiv.org/abs/2609.30263v1</id>
-    <title>Thresholds and spread in set systems of bounded VC-dimension</title>
-    <updated>2026-09-24T17:59:39Z</updated>
-    <link href="https://arxiv.org/abs/2609.30263v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30263v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>Let $p_c(\mathcal F)$, $q(\mathcal F)$, and $q_f(\mathcal F)$ denote the threshold, expectation threshold, and fractional expectation threshold of a family $\mathcal F$ of nonempty subsets of a finite set, respectively. We prove that there is an absolute constant $C&gt;0$ such that, if $\mathcal F$ has VC dimension at most $d\ge1$, then $p_c(\mathcal F)\le Cq(\mathcal F)\log(d+1)$. More generally, for every $0&lt;\varepsilon\le1/2$, a binomial random set of density $\min\{1,Cq(\mathcal F)\log((d+1)/\varepsilon)\}$ contains a member of $\mathcal F$ with probability at least $1-\varepsilon$. Consequently, $q_f(\mathcal F)\le Cq(\mathcal F)\log(d+1)$, verifying Talagrand's integral--fractional conjecture for families of any fixed VC dimension.
-  We also prove that if a $k$-spread probability measure has support of VC dimension at most $d$, then a binomial random set of density $\min\{1,(C/k)\log((d+1)/\varepsilon)\}$ contains a member of its support with probability at least $1-\varepsilon$. In both random-containment results, the factor \(\log((d+1)/\varepsilon)\) is optimal up to absolute constants. As an application of the spread theorem, we prove that every $n$-uniform family of VC dimension at most $d$ with more than $(C p^{-1}\log((d+1)/\varepsilon))^n$ members contains a $(p,\varepsilon)$-robust sunflower. In particular, every such family with more than $(Cr\log(d+1))^n$ members contains an $r$-sunflower, improving the recent bound $(Crd)^n$ of Ge, Wang, Xu, and Zhao.</summary>
-    <category term="math.CO" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:39Z</published>
-    <arxiv:comment>20 pages, Happy Mid-Autumn Festival, zhong qiu kuai le</arxiv:comment>
-    <arxiv:primary_category term="math.CO"/>
     <author>
-      <name>Chong Shangguan</name>
+      <name>Deepak Pathak</name>
+    </author>
+    <author>
+      <name>Ruslan Salakhutdinov</name>
     </author>
   </entry>
   <entry>
-    <id>http://arxiv.org/abs/2609.30260v1</id>
-    <title>Projected amorphous topological insulators</title>
-    <updated>2026-09-24T17:59:32Z</updated>
-    <link href="https://arxiv.org/abs/2609.30260v1" rel="alternate" type="text/html"/>
-    <link href="https://arxiv.org/pdf/2609.30260v1" rel="related" type="application/pdf" title="pdf"/>
-    <summary>We introduce projected amorphous topological insulators (PATIs) that despite containing only a fraction ($x$) of otherwise randomly selected {\it disconnected} sites of a parent crystal, feature a quantized global topological invariant ({\it strong} PATIs) when its effective Hamiltonian is constructed by integrating out the residual sites of the original lattice. Within the topological regime of the parent model, additionally, there exists a critical $x$ below which such systems foster a {\it fragile} PATI that only supports quantized local topological marker on a small fraction of sites therein. Both strong and fragile PATIs accommodate in-gap modes near the boundary. The system also hosts a normal insulator in the entire trivial parameter regime of the lattice-based model for any $x$, devoid of gapless boundary modes, for which both global topological invariant and local topological marker vanish. We demonstrate these {\it possibly} generic outcomes by starting with a parent square lattice-based model for time-reversal symmetry breaking insulators. Then the strong-to-fragile PATI quantum phase transition, tunable via $x$, is characterized by the {\it mean} correlation length exponent $ν\in (1.00,1.46)$.</summary>
-    <category term="cond-mat.mes-hall" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cond-mat.dis-nn" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cond-mat.mtrl-sci" scheme="http://arxiv.org/schemas/atom"/>
-    <category term="cond-mat.stat-mech" scheme="http://arxiv.org/schemas/atom"/>
-    <published>2026-09-24T17:59:32Z</published>
-    <arxiv:comment>7 Pages, 4 Figures, and 1 Table (Supplemental Material as Ancillary file)</arxiv:comment>
-    <arxiv:primary_category term="cond-mat.mes-hall"/>
+    <id>http://arxiv.org/abs/2611.03648v1</id>
+    <title>Pixel: A Co-Designed Full-Stack Robot System for Learning General-Purpose Mobile Manipulation</title>
+    <updated>2026-11-02T18:59:32Z</updated>
+    <link href="https://arxiv.org/abs/2611.03648v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03648v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>General-purpose mobile manipulation requires a combination of capable robot hardware, scalable demonstration collection, expressive whole-body control, and effective policy learning. Yet these components are often developed independently, creating mismatches that limit the capabilities of the complete system. We present Pixel, a co-designed full-stack system for learning general-purpose mobile manipulation. Pixel combines a low-cost wheeled humanoid with human-aligned kinematics and compliant grippers, multiple teleoperation and robot-free human data-collection interfaces, a unified whole-body controller, and a common policy learning pipeline across human and robot demonstrations. A hierarchical learning stack further enables language-conditioned visuomotor control and long-horizon task execution. We evaluate the system across hardware, data collection, and policy learning, and demonstrate mobile-manipulation behaviors requiring dexterity, active perception, navigation, and whole-body coordination. We hope that Pixel provides an integrated and extensible foundation for studying how robot hardware, data, control, and learning can be designed together for robot learning. More results at https://pixel-robot.com/pixel</summary>
+    <category term="cs.RO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LG" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="eess.SY" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:59:32Z</published>
+    <arxiv:comment>More results at https://pixel-robot.com/pixel</arxiv:comment>
+    <arxiv:primary_category term="cs.RO"/>
     <author>
-      <name>Archisman Panigrahi</name>
+      <name>Tony Tao</name>
     </author>
     <author>
-      <name>Bitan Roy</name>
+      <name>Jason Jingzhou Liu</name>
+    </author>
+    <author>
+      <name>Ruslan Salakhutdinov</name>
+    </author>
+    <author>
+      <name>Deepak Pathak</name>
+    </author>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2611.03646v1</id>
+    <title>EgoActionBench: Benchmarking Dense Action Captioning for Egocentric Human Videos</title>
+    <updated>2026-11-02T18:59:29Z</updated>
+    <link href="https://arxiv.org/abs/2611.03646v1" rel="alternate" type="text/html"/>
+    <link href="https://arxiv.org/pdf/2611.03646v1" rel="related" type="application/pdf" title="pdf"/>
+    <summary>Learning from human data offers a scalable path toward embodied intelligence, yet it requires models to accurately understand fine-grained human actions from egocentric observations. However, existing benchmarks remain limited in action atomicity, temporal precision, and hand-action association. We introduce EgoActionBench, a benchmark that represents continuous human manipulation as temporally localized atomic actions associated with the left hand, right hand, or both hands. EgoActionBench contains 1,407 episodes with 41,132 human-refined action annotations. To evaluate such dense predictions, we propose an evaluation protocol that retrieves temporally eligible candidates, selects a prediction by content agreement, and scores semantic fidelity and temporal overlap alongside action precision and recall, jointly capturing what happens, when it happens, and which hand performs it. We benchmark 20 baseline models and systems on EgoActionBench and further adapt two backbones, Qwen3-VL-4B and LLaVA-OneVision-2-8B, through supervised fine-tuning followed by reinforcement learning on automatically annotated training episodes. EgoAction improves EgoActionScore by 15.9 and 23.2 points on the two backbones, and both adapted models outperform all open-source baselines. Our experiments reveal substantial limitations of current models in action atomicity, temporal precision, and hand-action association, highlighting the gap between general video understanding and the action understanding required for embodied intelligence.</summary>
+    <category term="cs.CV" scheme="http://arxiv.org/schemas/atom"/>
+    <published>2026-11-02T18:59:29Z</published>
+    <arxiv:comment>32 pages, 16 figures. Project page: https://egoaction-bench.github.io</arxiv:comment>
+    <arxiv:primary_category term="cs.CV"/>
+    <author>
+      <name>Yujiao Shen</name>
+    </author>
+    <author>
+      <name>Jiahe Song</name>
+    </author>
+    <author>
+      <name>Haitian Li</name>
+    </author>
+    <author>
+      <name>Jingkang Yang</name>
+    </author>
+    <author>
+      <name>Ziwei Liu</name>
     </author>
   </entry>
 </feed>

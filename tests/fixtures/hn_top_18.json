@@ -1,27 +1,18 @@
 {
-  "by": "pjm331",
-  "descendants": 59,
-  "id": 49839567,
+  "by": "cornfieldlabs",
+  "descendants": 9,
+  "id": 50349155,
   "kids": [
-    49862557,
-    49862875,
-    49862897,
-    49863337,
-    49863968,
-    49863825,
-    49861995,
-    49862626,
-    49862885,
-    49862958,
-    49863739,
-    49855233,
-    49862113,
-    49862661,
-    49862577
+    50349404,
+    50349246,
+    50349401,
+    50349370,
+    50349397,
+    50349211
   ],
-  "score": 102,
-  "time": 1790303679,
-  "title": "Evolving programming languages in the AI era",
+  "score": 48,
+  "time": 1793691407,
+  "title": "uBlock Origin filter to block autoplay videos in TechCrunch",
   "type": "story",
-  "url": "https://dashbit.co/blog/evolving-ai-era"
+  "url": "https://cornfieldlabs.github.io/posts/ublock-stop-techcrunch-autoplay-video/post.html"
 }

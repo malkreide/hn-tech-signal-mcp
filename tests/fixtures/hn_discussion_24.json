@@ -1,0 +1,11 @@
+{
+  "by": "BrokenCogs",
+  "id": 50347251,
+  "kids": [
+    50347290
+  ],
+  "parent": 50341174,
+  "text": "I believe the authors are wildly overstating the conclusions in their abstract.<p>Did they test modifying the weights of a non-public model?<p>Did they test modifying the weights of a non-LLM (and non-public) model?<p>If not, we can only conclude that GPT-6 Astra is good at reading and writing weights of Qwen (a public LLM), not just any neutral network.",
+  "time": 1793673055,
+  "type": "comment"
+}

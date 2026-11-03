@@ -1,14 +1,27 @@
 {
-  "by": "bookofjoe",
-  "descendants": 3,
-  "id": 49849723,
+  "by": "bpierre",
+  "descendants": 40,
+  "id": 50346849,
   "kids": [
-    49865549,
-    49865488
+    50349134,
+    50347035,
+    50349334,
+    50347612,
+    50347472,
+    50347855,
+    50347258,
+    50348090,
+    50347236,
+    50347865,
+    50347231,
+    50349008,
+    50347230,
+    50349022,
+    50347462
   ],
-  "score": 12,
-  "time": 1790369078,
-  "title": "Finally, A True Blue Rose Exists",
+  "score": 168,
+  "time": 1793669623,
+  "title": "DiscImageStudio: burn visible artwork onto CDs, DVDs and Blu-ray discs",
   "type": "story",
-  "url": "https://www.sciencenews.org/article/true-blue-rose-pigment-copigment"
+  "url": "https://github.com/JiaFeiMiao-K-Cat/DiscImageStudio"
 }

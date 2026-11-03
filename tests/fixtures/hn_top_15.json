@@ -1,14 +1,32 @@
 {
-  "by": "yullius",
-  "descendants": 0,
-  "id": 49865067,
+  "by": "tomrod",
+  "descendants": 55,
+  "id": 50340619,
   "kids": [
-    49865256
+    50348580,
+    50344207,
+    50344808,
+    50344984,
+    50348063,
+    50348136,
+    50345947,
+    50349177,
+    50348396,
+    50347605,
+    50344854,
+    50346693,
+    50345842,
+    50344812,
+    50345246,
+    50348728,
+    50347289,
+    50344766,
+    50344595,
+    50344617
   ],
-  "score": 4,
-  "text": "Hi HN, Light Cloud is a hosting platform where the unit of organisation is a folder. A folder holds everything project needs: frontend, API, database, env variables, preview per branch.",
-  "time": 1790502315,
-  "title": "Show HN: LightCloud – A cloud console organised like file system",
+  "score": 206,
+  "time": 1793641660,
+  "title": "Self-Employed? Solopreneur? NIST Has a Cybersecurity Guide Just for You",
   "type": "story",
-  "url": "https://www.light-cloud.com/"
+  "url": "https://www.nist.gov/news-events/news/2026/11/self-employed-solopreneur-nist-has-cybersecurity-guide-just-you"
 }

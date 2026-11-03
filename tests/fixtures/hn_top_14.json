@@ -1,24 +1,18 @@
 {
-  "by": "momentmaker",
-  "descendants": 26,
-  "id": 49832768,
+  "by": "sebg",
+  "descendants": 8,
+  "id": 50320904,
   "kids": [
-    49859773,
-    49862762,
-    49859789,
-    49833549,
-    49860132,
-    49863039,
-    49859295,
-    49859403,
-    49860754,
-    49862348,
-    49859284,
-    49864507
+    50349300,
+    50349412,
+    50349016,
+    50349143,
+    50348944,
+    50348922
   ],
-  "score": 176,
-  "time": 1790266302,
-  "title": "A searchable library of forgotten public-domain film clips from 1915 onward",
+  "score": 25,
+  "time": 1793485909,
+  "title": "Efficient algorithms, the Exponential Time Hypothesis, and losing the plot",
   "type": "story",
-  "url": "https://www.movingimagearchive.com/"
+  "url": "https://www.argmin.net/p/galactus-the-devourer"
 }

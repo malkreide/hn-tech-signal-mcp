@@ -1,0 +1,8 @@
+{
+  "by": "esjeon",
+  "id": 50349286,
+  "parent": 50341174,
+  "text": "Showerthoughts:<p>1. If you know ANN or, say, perceptron, you know you can eyeball models too. You can even have certain strategies in composing your own network. This weight-space programming thing is nothing new in that sense, and the article doesn’t really provide much beyond “LLM can do it”. That’s not even science…<p>2. I’m pretty sure this is Transformers thing, not even LLM. Transformer is, by itself, good at finding patterns in relatively-larger data. So this is unlikely limited to Astra.<p>3. This approach quickly becomes impractical as the scale goes up. Sure, you can also have multiple models chained with fewer connections, but, now that’s what we’ve been doing for years.<p>All in all, yeah, an interesting find, but too far from changing the game. Over-exaggerated every way. Perhaps one should start from formulating what weight-space programming is, what methodologies, practicality, etc. LLM bench is one of the last things you need.",
+  "time": 1793692699,
+  "type": "comment"
+}

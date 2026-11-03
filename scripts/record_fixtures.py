@@ -151,21 +151,19 @@ GESPERRT = "sessions are bound to their configured repositories"
 # Was sich aus mancher Umgebung nicht aufzeichnen laesst, und warum. Die
 # Begruendung gehoert in den Code und nicht bloss in eine Commit-Nachricht:
 # sonst liest der naechste Blick den fehlenden Eintrag als Versehen.
-NICHT_VON_HIER = {
-    "github_trending_ai": (
-        "api.github.com/search/repositories antwortet in manchen Umgebungen mit "
-        "HTTP 403 «sessions are bound to their configured repositories». Gesperrt "
-        "ist der *Pfad*, nicht der Host und nicht die Authentisierung: dieselbe "
-        "403 kommt mit und ohne Token, ohne `Server`-Header und ohne "
-        "`x-github-request-id` — die Anfrage erreicht GitHub nie. Ein eigenes "
-        "GITHUB_TOKEN aendert daran nichts; noetig ist eine Umgebung ohne diese "
-        "Pfad-Beschraenkung, denn eine account-weite Suche laesst sich nicht als "
-        "`repos/{owner}/{repo}/...` ausdruecken. Dort zeichnet derselbe Lauf sie "
-        "ohne Zutun mit auf. Bis dahin bleibt der Pfad bei handgeschriebenen "
-        "Stubs, und `test_der_digest_haelt_den_ausfall_einer_quelle_aus` prueft, "
-        "dass der Digest ohne diese Quelle weiterlaeuft statt umzufallen."
-    ),
-}
+#
+# Leer seit dem 3.11.2026. Bis dahin stand hier `github_trending_ai`:
+# api.github.com/search/repositories antwortete aus der Aufnahmeumgebung mit
+# HTTP 403 «sessions are bound to their configured repositories». Gesperrt war
+# der *Pfad*, nicht der Host und nicht die Authentisierung — dieselbe 403 kam
+# mit und ohne Token, ohne `Server`-Header und ohne `x-github-request-id`; die
+# Anfrage erreichte GitHub nie. Am 3.11. trugen die Antworten beides wieder,
+# und derselbe Lauf zeichnete die Suche ohne Zutun mit auf — dafuer stand der
+# Aufruf die ganze Zeit im Plan. Kehrt die Sperre zurueck, ueberspringt `GESPERRT`
+# den Aufruf wieder, das Aufraeumen entfernt die alten GitHub-Belege, und
+# `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet` verlangt
+# den Eintrag hier zurueck.
+NICHT_VON_HIER: dict[str, str] = {}
 
 
 def schluessel_fuer(request: httpx.Request) -> str:

@@ -1,11 +1,26 @@
 {
-  "by": "LiamPowell",
-  "id": 49865554,
+  "by": "yurimo",
+  "id": 50347685,
   "kids": [
-    49865572
+    50347836,
+    50349433,
+    50347776,
+    50349068,
+    50348259,
+    50348736,
+    50349021,
+    50348218,
+    50349088,
+    50348065,
+    50347794,
+    50348410,
+    50348849,
+    50347862,
+    50348237,
+    50348052
   ],
-  "parent": 49865343,
-  "text": "&gt; yet what drives them is not well understood<p>Presumably the fact that they&#x27;re heavily trained to reply in this way? I don&#x27;t know about the rest of the paper, but this part sticks out as a really odd claim unless I&#x27;m entirely misunderstanding this part.",
-  "time": 1790506742,
+  "parent": 50341174,
+  "text": "Respectfully to the authors and to everyone here, I ask you to actually read the paper before losing your mind, or at the very least plug it into Claude. It is a cool project but not as nearly as insane as people say. I think the blog writing and subsequent posting overstate the results.<p>Part of my research is in weight space learning. For starters, we have had the ability to edit weights, to generate new weights, to identify weights for a while. Here is an example for larger models as early as 2023:\n<a href=\"https:&#x2F;&#x2F;rome.baulab.info&#x2F;\" rel=\"nofollow\">https:&#x2F;&#x2F;rome.baulab.info&#x2F;</a><p>Weight space interpretability and learning is an active research community, has been for the past 3 years with many great papers. I suspect it is hitting non-interp folks harder because the authors hyped up their work, and people who are not in the field did not bother to read it before typing up X posts.<p>Some experiments here are done on very small models (20K params). We already know that small models are more interpretable. In fact, much of editing here you can do by hand. For Qwen, the model fixed a looping bug that may have been known apriori, and it is basically a steering vector, a very established technique. This is clear when they then attempt to &quot;improve&quot; math capability, and it doesn&#x27;t work. For me, this paper rather shows that OpenAI has done training on mechinterp  environment, in fact, maybe even on weight space learning datasets, which are open. But it does not show some insane &quot;well past what we’d expect from humans or conventional algorithms&quot; (from the blog post), more like past what I would expect from a large model with no specialized harness. I still think it is cool work, but do check out recent advances in autointerp, to ground your expectation.<p>On a personal note, I understand the need for promotion of your work, but I think healthy skepticism is fine too. Otherwise, your understanding of what problems need to be worked on and solved in science becomes warped.",
+  "time": 1793676511,
   "type": "comment"
 }

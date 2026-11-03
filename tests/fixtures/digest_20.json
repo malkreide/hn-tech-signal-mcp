@@ -1,0 +1,19 @@
+{
+  "by": "wondersky",
+  "descendants": 71,
+  "id": 50337558,
+  "kids": [
+    50339322,
+    50340012,
+    50339285,
+    50340544,
+    50344412,
+    50347073,
+    50342229
+  ],
+  "score": 177,
+  "time": 1793630848,
+  "title": "We halved DNS build delay and cut memory use by 85%",
+  "type": "story",
+  "url": "https://blog.cloudflare.com/dns-targeted-zone-builds/"
+}
