@@ -1,10 +1,31 @@
 {
-  "by": "matt_d",
-  "descendants": 0,
-  "id": 49850991,
-  "score": 33,
-  "time": 1790376532,
-  "title": "Exploding variance of means of exponentials: least-squares to the rescue",
+  "by": "ibobev",
+  "descendants": 47,
+  "id": 50341028,
+  "kids": [
+    50346659,
+    50343776,
+    50341593,
+    50349213,
+    50347224,
+    50343246,
+    50347117,
+    50342318,
+    50347594,
+    50347436,
+    50346440,
+    50347060,
+    50344382,
+    50345511,
+    50341901,
+    50345208,
+    50342103,
+    50347292,
+    50344837
+  ],
+  "score": 131,
+  "time": 1793643168,
+  "title": "Sneaking into the auditorium for the Windows 2000 launch rehearsal",
   "type": "story",
-  "url": "https://francisbach.com/spectral_log_density_estimation/"
+  "url": "https://devblogs.microsoft.com/oldnewthing/20261102-00/?p=112818/"
 }

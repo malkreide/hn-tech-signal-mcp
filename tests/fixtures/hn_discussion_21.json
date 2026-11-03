@@ -1,0 +1,11 @@
+{
+  "by": "qnleigh",
+  "id": 50345867,
+  "kids": [
+    50347029
+  ],
+  "parent": 50341174,
+  "text": "Look at the reasoning the models give before you get too excited here. For the Pong-vs-Pacman example, the model uses observations like small weights for certain arrow keys and large weights where user-controlled objects are. For the language example, it again recognizes some very shallow patterns (Romaji has a limited number of letter groupings) and is taking a 3-option multiple choice test. It&#x27;s a neat result, but I think the introduction overstates the significance.",
+  "time": 1793663032,
+  "type": "comment"
+}

@@ -1,18 +1,21 @@
 {
-  "by": "blutack",
-  "descendants": 11,
-  "id": 49854219,
+  "by": "ymz5",
+  "descendants": 29,
+  "id": 50334523,
   "kids": [
-    49865515,
-    49864107,
-    49864059,
-    49864339,
-    49864572,
-    49864372
+    50349428,
+    50348809,
+    50348987,
+    50349025,
+    50348997,
+    50349441,
+    50348207,
+    50348784,
+    50349053
   ],
-  "score": 107,
-  "time": 1790409024,
-  "title": "Flip Fluid on Flip Dots",
+  "score": 80,
+  "time": 1793609913,
+  "title": "European RISC-V Industrial Computing Initiative",
   "type": "story",
-  "url": "https://mitxela.com/projects/flipflip"
+  "url": "https://erici.eu"
 }

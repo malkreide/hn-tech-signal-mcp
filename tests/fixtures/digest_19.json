@@ -1,13 +1,16 @@
 {
-  "by": "andsoitis",
-  "descendants": 2,
-  "id": 49851555,
+  "by": "ibobev",
+  "descendants": 12,
+  "id": 50337661,
   "kids": [
-    49857308
+    50341274,
+    50339630,
+    50346670,
+    50346081
   ],
-  "score": 7,
-  "time": 1790379672,
-  "title": "Bob Mackie dressed stars–if they were brave enough",
+  "score": 74,
+  "time": 1793631381,
+  "title": "C64 Basic Dungeon Crawler: Stairs, Levels and Levelling Up (Part 11)",
   "type": "story",
-  "url": "https://www.economist.com/obituary/2026/09/24/bob-mackie-dressed-stars-if-they-were-brave-enough"
+  "url": "https://retrogamecoders.com/c64-basic-dungeon-part11/"
 }

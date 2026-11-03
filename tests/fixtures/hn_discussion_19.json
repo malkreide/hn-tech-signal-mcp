@@ -1,0 +1,8 @@
+{
+  "by": "sert_121",
+  "id": 50348923,
+  "parent": 50341174,
+  "text": "I feel a lot of people have already addressed the broad stretches to which people are interpreting this. Regardless, the blogpost does open interesting directions that could be useful down the line (2-5years):\na) tapping into the embedding space in ways that we don&#x27;t, ie editing model weights to alter task-performance (mostly preventing degradation)\nb) Exploring the weight space in more intuitive ways\nc) Understanding how we can ablate on different parts of the model to understand neuron-based interp better<p>Seeing this as a replacement of training seems naive, yet one can see this feedback loop targeting weights as an viable alternative to let&#x27;s say doing LoRA on certain models, especially if we don&#x27;t want to teach new behaviours.",
+  "time": 1793689057,
+  "type": "comment"
+}

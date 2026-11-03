@@ -11,7 +11,7 @@
         "author": {
           "matchLevel": "none",
           "matchedWords": [],
-          "value": "nonmaskable"
+          "value": "formerly_proven"
         },
         "title": {
           "fullyHighlighted": false,
@@ -19,7 +19,7 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "Nvidia announces native GPU programming in <em>Rust</em>"
+          "value": "11 year old unsoundness bugs found in <em>Rust</em> borrow checker"
         },
         "url": {
           "fullyHighlighted": false,
@@ -27,36 +27,36 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "https://developer.nvidia.com/blog/introducing-cuda-<em>rust</em>-two-tracks-for-writing-gpu-kernels/"
+          "value": "https://github.com/<em>rust</em>-lang/<em>rust</em>/issues/164250"
         }
       },
       "_tags": [
         "story",
-        "author_nonmaskable",
-        "story_49724881"
+        "author_formerly_proven",
+        "story_50069499"
       ],
-      "author": "nonmaskable",
+      "author": "formerly_proven",
       "children": [
-        49724907,
-        49725272,
-        49733856
+        50069748,
+        50069776,
+        50069777
       ],
-      "created_at": "2026-09-16T11:15:53Z",
-      "created_at_i": 1789557353,
-      "num_comments": 404,
-      "objectID": "49724881",
-      "points": 970,
-      "story_id": 49724881,
-      "title": "Nvidia announces native GPU programming in Rust",
-      "updated_at": "2026-09-27T07:24:32Z",
-      "url": "https://developer.nvidia.com/blog/introducing-cuda-rust-two-tracks-for-writing-gpu-kernels/"
+      "created_at": "2026-10-13T10:27:00Z",
+      "created_at_i": 1791887220,
+      "num_comments": 446,
+      "objectID": "50069499",
+      "points": 751,
+      "story_id": 50069499,
+      "title": "11 year old unsoundness bugs found in Rust borrow checker",
+      "updated_at": "2026-11-01T06:00:39Z",
+      "url": "https://github.com/rust-lang/rust/issues/164250"
     },
     {
       "_highlightResult": {
         "author": {
           "matchLevel": "none",
           "matchedWords": [],
-          "value": "mmastrac"
+          "value": "hnisjafx40"
         },
         "title": {
           "fullyHighlighted": false,
@@ -64,7 +64,7 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "<em>Rust</em> is tier-1 language at Microsoft"
+          "value": "Tsrs: A Port of TypeScript to <em>Rust</em>"
         },
         "url": {
           "fullyHighlighted": false,
@@ -72,36 +72,36 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "https://<em>rust</em>foundation.org/media/guest-post-<em>rust</em>-is-tier-1-language-at-microsoft/"
+          "value": "https://blog.cloudflare.com/typescript-<em>rust</em>-port/"
         }
       },
       "_tags": [
         "story",
-        "author_mmastrac",
-        "story_49643546"
+        "author_hnisjafx40",
+        "story_50165953"
       ],
-      "author": "mmastrac",
+      "author": "hnisjafx40",
       "children": [
-        49644105,
-        49644131,
-        49644176
+        50166870,
+        50167001,
+        50167188
       ],
-      "created_at": "2026-09-10T13:39:16Z",
-      "created_at_i": 1789047556,
-      "num_comments": 517,
-      "objectID": "49643546",
-      "points": 730,
-      "story_id": 49643546,
-      "title": "Rust is tier-1 language at Microsoft",
-      "updated_at": "2026-09-27T06:42:00Z",
-      "url": "https://rustfoundation.org/media/guest-post-rust-is-tier-1-language-at-microsoft/"
+      "created_at": "2026-10-20T13:18:07Z",
+      "created_at_i": 1792502287,
+      "num_comments": 213,
+      "objectID": "50165953",
+      "points": 437,
+      "story_id": 50165953,
+      "title": "Tsrs: A Port of TypeScript to Rust",
+      "updated_at": "2026-11-02T14:41:13Z",
+      "url": "https://blog.cloudflare.com/typescript-rust-port/"
     },
     {
       "_highlightResult": {
         "author": {
           "matchLevel": "none",
           "matchedWords": [],
-          "value": "vinhnx"
+          "value": "kaycebasques"
         },
         "title": {
           "fullyHighlighted": false,
@@ -109,53 +109,57 @@
           "matchedWords": [
             "rust"
           ],
-          "value": "Reverse engineering my e-scooter and rewriting the firmware in <em>Rust</em>"
+          "value": "<em>Rust</em> Style Guide"
         },
         "url": {
-          "matchLevel": "none",
-          "matchedWords": [],
-          "value": "https://bensimms.moe/reverse-engineering-scooter/"
+          "fullyHighlighted": false,
+          "matchLevel": "full",
+          "matchedWords": [
+            "rust"
+          ],
+          "value": "https://google.github.io/styleguide/<em>rust</em>guide.html"
         }
       },
       "_tags": [
         "story",
-        "author_vinhnx",
-        "story_49638071"
+        "author_kaycebasques",
+        "story_50186010"
       ],
-      "author": "vinhnx",
+      "author": "kaycebasques",
       "children": [
-        49638434,
-        49683174,
-        49683662
+        50186376,
+        50186567,
+        50186700
       ],
-      "created_at": "2026-09-10T03:32:04Z",
-      "created_at_i": 1789011124,
-      "num_comments": 105,
-      "objectID": "49638071",
-      "points": 452,
-      "story_id": 49638071,
-      "title": "Reverse engineering my e-scooter and rewriting the firmware in Rust",
-      "updated_at": "2026-09-26T23:18:30Z",
-      "url": "https://bensimms.moe/reverse-engineering-scooter/"
+      "created_at": "2026-10-21T19:11:57Z",
+      "created_at_i": 1792609917,
+      "num_comments": 257,
+      "objectID": "50186010",
+      "points": 394,
+      "story_id": 50186010,
+      "title": "Rust Style Guide",
+      "updated_at": "2026-11-02T15:42:28Z",
+      "url": "https://google.github.io/styleguide/rustguide.html"
     }
   ],
   "hitsPerPage": 3,
-  "nbHits": 13364,
+  "nbHits": 10899,
   "nbPages": 334,
   "page": 0,
-  "params": "query=rust&hitsPerPage=3&numericFilters=created_at_i%3E1787915165&advancedSyntax=true&analyticsTags=backend",
+  "params": "query=rust&hitsPerPage=3&numericFilters=created_at_i%3E1791102715&advancedSyntax=true&analyticsTags=backend",
   "processingTimeMS": 5,
   "processingTimingsMS": {
     "_request": {
-      "roundTrip": 13
+      "queue": 18,
+      "roundTrip": 17
     },
     "fetch": {
-      "query": 1,
-      "scanning": 2,
+      "query": 2,
+      "scanning": 1,
       "total": 4
     },
     "total": 5
   },
   "query": "rust",
-  "serverTimeMS": 5
+  "serverTimeMS": 23
 }

@@ -1,0 +1,18 @@
+{
+  "by": "xg15",
+  "id": 50343529,
+  "kids": [
+    50347593,
+    50345407,
+    50347457,
+    50344061,
+    50346957,
+    50346930,
+    50346855,
+    50346007
+  ],
+  "parent": 50341174,
+  "text": "And here we go...<p>As others have said, while still absolutely insane, I don&#x27;t find it completely out-of-the-blue surprising. One of the recurring abilities of (current-generation) LLMs seem to be to rapidly grasp very complex systems, where humans would need months or years to reach the same level of expertise.<p>You can see this in the way a coding agent can &quot;understand&quot; and explain sprawling legacy codebases in seconds.<p>You can also see it in the projects that are using them to reverse-engineer proprietary IoT protocols or computer games.<p>But those were all systems where we had detailed knowledge about what structures are there to be reverse-enginered.<p>If the models can transfer this ability to some other systems where we <i>don&#x27;t</i> know the underlying structure then I think we will be in for a lot more craziness in the future. (Protein interaction networks? DNA sequences? Ecosystem interactions? Animal languages?)<p>As for weights, if the models really can analyze the semantics behind specific weights or directions, I have my hopes that they could also give a textual explanation or help designing tools to make &quot;handcrafting&quot; weights more practical in general.",
+  "time": 1793652666,
+  "type": "comment"
+}

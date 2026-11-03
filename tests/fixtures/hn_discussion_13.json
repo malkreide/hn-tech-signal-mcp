@@ -1,0 +1,8 @@
+{
+  "by": "bob1029",
+  "id": 50349311,
+  "parent": 50341174,
+  "text": "If we are being slightly reductive, this is just more of the exact same thing. The token stream in this case happens to be a projection of the weights of a neural network. I don&#x27;t see where we violated any of the prevailing assumptions about how these systems operate.<p>The mapping between spaces in this case is mostly linear. This isn&#x27;t like gzip or a Turing machine. I&#x27;d argue this is even more permissive (easier) than the LLM&#x27;s originally intended use case of human language.<p>What happens if we can come up with a model that can directly emit a frontier LLM given some seed context? I feel like we could train a model to recreate astra verbatim. At some level it&#x27;s just bytes on a disk that can be bundled up into tokens. As long as the representation is rational and consistent I don&#x27;t see why this wouldn&#x27;t work.",
+  "time": 1793692971,
+  "type": "comment"
+}

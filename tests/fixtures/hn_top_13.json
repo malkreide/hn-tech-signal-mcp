@@ -1,23 +1,18 @@
 {
-  "by": "pseudolus",
-  "descendants": 25,
-  "id": 49839438,
+  "by": "vegnus",
+  "descendants": 7,
+  "id": 50348740,
   "kids": [
-    49863308,
-    49864119,
-    49864360,
-    49863175,
-    49864447,
-    49862722,
-    49862376,
-    49863804,
-    49845098,
-    49839549,
-    49862612
+    50349225,
+    50349199,
+    50349200,
+    50348983,
+    50349034,
+    50349077
   ],
-  "score": 74,
-  "time": 1790302267,
-  "title": "Biology might not be quantum, but its math is quantumlike",
+  "score": 17,
+  "time": 1793687090,
+  "title": "Show HN: ReBirth 338 in Browser",
   "type": "story",
-  "url": "https://www.quantamagazine.org/biology-might-not-be-quantum-but-its-math-is-quantumlike-20260923/"
+  "url": "https://margeux.com/rb338.html"
 }

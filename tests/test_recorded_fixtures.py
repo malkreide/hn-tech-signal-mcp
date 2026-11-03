@@ -62,6 +62,11 @@ WERKZEUGE: dict[str, tuple[str, str, dict[str, Any]]] = {
         {"query": "retrieval augmented generation", "limit": 3},
     ),
     "lobsters": ("lobsters_hot", "LobstersHotInput", {"limit": 3}),
+    "github": (
+        "github_trending_ai",
+        "GithubTrendingAiInput",
+        {"topic": "llm", "limit": 3, "min_stars": 100},
+    ),
     "digest": (
         "tech_signal_digest",
         "TechSignalDigestInput",
@@ -69,11 +74,12 @@ WERKZEUGE: dict[str, tuple[str, str, dict[str, Any]]] = {
     ),
 }
 
-# Die Antwort, die `api.github.com/search/repositories` aus der
-# Aufnahmeumgebung gab. Sie steht hier und nicht im Fixture-Ordner: eine
+# Die Antwort, die `api.github.com/search/repositories` bis Oktober 2026 aus
+# der Aufnahmeumgebung gab. Sie steht hier und nicht im Fixture-Ordner: eine
 # Fehlerantwort als Aufzeichnung abzulegen hiesse, sie als das auszugeben, was
-# die Quelle normalerweise sagt. Der Grund steht in `NICHT_VON_HIER` im
-# Recorder.
+# die Quelle normalerweise sagt. Seit dem 3.11.2026 ist die Suche aufgezeichnet;
+# die Antwort bleibt fuer die Sperr-Tests des Recorders und fuer den Ausfall,
+# den `test_der_digest_haelt_den_ausfall_einer_quelle_aus` braucht.
 GITHUB_403 = {
     "message": (
         "This GitHub API path is not available: sessions are bound to their "
@@ -95,14 +101,17 @@ def _leerer_cache():
     server._cache.clear()
 
 
-@pytest.fixture
-def quelle():
+def _spiele_ab(*, github_gesperrt: bool):
     """Beantwortet jede Anfrage aus ihrer eigenen Aufzeichnung und protokolliert mit.
 
     Nach der *Anfrage* zugeordnet, nicht nach der Reihenfolge: der Digest
     startet seine Abrufe nebenlaeufig. Eine Anfrage ohne Aufzeichnung faellt
-    hier laut auf, statt still eine fremde Datei zu bekommen — mit der einen
-    dokumentierten Ausnahme der GitHub-Suche.
+    hier laut auf, statt still eine fremde Datei zu bekommen.
+
+    Bis zum 3.11.2026 bekam die GitHub-Suche hier stillschweigend die 403, weil
+    es keine Aufzeichnung gab. Diese Ausnahme ist weg: Sie haette jetzt eine
+    Anfrage verdeckt, deren Form nicht mehr zur Aufzeichnung passt. Wer den
+    Ausfall will, verlangt ihn mit `github_gesperrt` ausdruecklich.
     """
     protokoll: list[httpx.Request] = []
     verzeichnis = schluesselverzeichnis()
@@ -110,10 +119,10 @@ def quelle():
     def antwort(request: httpx.Request) -> httpx.Response:
         protokoll.append(request)
         schluessel = schluessel_fuer(request)
+        if github_gesperrt and schluessel.startswith(server.GITHUB_BASE_URL):
+            return httpx.Response(403, json=GITHUB_403)
         name = verzeichnis.get(schluessel)
         if name is None:
-            if schluessel.startswith(server.GITHUB_BASE_URL):
-                return httpx.Response(403, json=GITHUB_403)
             raise AssertionError(
                 f"keine Aufzeichnung fuer diese Anfrage:\n  {schluessel}\n"
                 "Neu aufzeichnen mit `PYTHONPATH=src python scripts/record_fixtures.py`."
@@ -123,6 +132,17 @@ def quelle():
     with respx.mock:
         respx.route().mock(side_effect=antwort)
         yield protokoll
+
+
+@pytest.fixture
+def quelle():
+    yield from _spiele_ab(github_gesperrt=False)
+
+
+@pytest.fixture
+def quelle_ohne_github():
+    """Alle Quellen aus ihren Aufzeichnungen, nur GitHub mit der 403 der Sperre."""
+    yield from _spiele_ab(github_gesperrt=True)
 
 
 @pytest.fixture
@@ -231,27 +251,56 @@ def test_der_recorder_faehrt_dieselben_aufrufe():
     es geht keine Anfrage raus. Die Diskussion steht in beiden, ihre Story-ID
     kommt in beiden zur Laufzeit dazu.
 
-    Zwei Eintraege stehen nur im Plan: `hn_discussion`, weil seine Story-ID erst
-    zur Laufzeit dazukommt, und `github`, weil es aus dieser Umgebung keine
-    Aufzeichnung gibt. Dass der zweite nicht bloss uebrig ist, prueft
-    `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet`.
+    Ein Eintrag steht nur im Plan: `hn_discussion`, weil seine Story-ID erst
+    zur Laufzeit dazukommt. Bis zum 3.11.2026 stand `github` daneben, weil es
+    keine Aufzeichnung gab; seither faehrt diese Tabelle ihn mit.
     """
     im_plan = {a.name for a in recorder().PLAN}
-    assert im_plan == set(WERKZEUGE) | {"hn_discussion", "github"}, (
+    assert im_plan == set(WERKZEUGE) | {"hn_discussion"}, (
         "Recorder und Testtabelle nennen verschiedene Aufrufe"
     )
 
 
-def test_die_gesperrte_quelle_steht_begruendet_im_recorder():
-    """Ein fehlender Endpunkt ohne Begruendung liest sich als Versehen.
+def _github_suchen() -> dict[str, str]:
+    """Schluessel → Datei fuer jede aufgezeichnete GitHub-Suche."""
+    suche = f"{server.GITHUB_BASE_URL}/search/repositories"
+    return {k: n for k, n in schluesselverzeichnis().items() if k.startswith(suche)}
 
-    `github_trending_ai` hat keine Aufzeichnung, weil die Aufnahmeumgebung die
-    GitHub-Suche mit 403 abweist — nicht, weil der Pfad vergessen wurde. Die
-    Begruendung gehoert in den Code und faellt hier auf, wenn sie verschwindet.
+
+def test_die_github_suche_ist_aufgezeichnet():
+    """Die Luecke bis zum 3.11.2026 bleibt geschlossen.
+
+    Bis dahin stand an dieser Stelle die Zusicherung, die Luecke sei begruendet.
+    Jetzt verlangt sie das Gegenteil: `github_trending_ai` *und* jedes Topic des
+    Digests haben eine echte Antwort. Kehrt die Sperre zurueck, entfernt der
+    naechste Lauf die Belege — und dieser Test sagt es, statt dass die Suite
+    still auf handgeschriebene Stubs zurueckfaellt.
     """
-    luecken = recorder().NICHT_VON_HIER
-    assert "github_trending_ai" in luecken, "die Luecke ist nicht mehr begruendet"
-    assert "403" in luecken["github_trending_ai"]
+    # Suchausdruck UND Sortierung: Der Digest fragt `topic:llm stars:>=100`
+    # woertlich gleich, nur nach `updated` sortiert. Wer bloss `q` vergleicht,
+    # sieht die Trending-Suche auch dann, wenn nur der Digest aufgezeichnet ist
+    # — die Gegenprobe hat genau das gezeigt.
+    abfragen = {(httpx.URL(k).params["q"], httpx.URL(k).params["sort"]) for k in _github_suchen()}
+    assert ("topic:llm stars:>=100", "stars") in abfragen, sorted(abfragen)
+    for topic in server.DIGEST_GITHUB_TOPICS:
+        erwartet = (f"topic:{topic} stars:>={server.DIGEST_GITHUB_MIN_STARS}", "updated")
+        assert erwartet in abfragen, (topic, sorted(abfragen))
+
+
+def test_die_aufgezeichnete_suche_traegt_incomplete_results():
+    """Der Feldname, auf den sich der Abbruch-Hinweis stuetzt, ist belegt.
+
+    PR #85 las `incomplete_results` aus der Spec der Search-API und baute darauf
+    den Hinweis, dass eine Suche abgebrochen wurde. Eine handgeschriebene
+    Antwort haette den Namen nur wiederholt. Jede aufgezeichnete Antwort traegt
+    ihn als Wahrheitswert auf oberster Ebene — benennt GitHub ihn um, faellt das
+    hier beim naechsten Aufzeichnen auf und nicht erst an einem leeren 29.10.
+    """
+    suchen = _github_suchen()
+    assert suchen, "keine GitHub-Suche aufgezeichnet"
+    for datei in suchen.values():
+        daten = fixture_json(datei)
+        assert isinstance(daten.get("incomplete_results"), bool), (datei, sorted(daten))
 
 
 def test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet():
@@ -401,8 +450,11 @@ async def test_die_json_werkzeuge_liefern_gefuellte_listen(quelle, aufnahmezeitp
     """
     daten = json.loads(await _fahre(name))
     if name == "digest":
-        gefuellt = [k for k, v in daten["sources"].items() if v.get("count", 0) > 0]
-        assert len(gefuellt) >= 3, f"nur {gefuellt} tragen Eintraege"
+        # Bis zum 3.11.2026 genuegten drei: GitHub hatte keine Aufzeichnung und
+        # fiel im Abspielen aus. Jetzt muessen alle vier ankommen, sonst bliebe
+        # ein Fehler im GitHub-Zweig des Digests hier unsichtbar.
+        gefuellt = {k for k, v in daten["sources"].items() if v.get("count", 0) > 0}
+        assert gefuellt == {"hn", "arxiv", "lobsters", "github"}, f"nur {sorted(gefuellt)}"
         return
     schluessel = next(k for k in ("stories", "hits", "papers", "repos") if k in daten)
     assert daten[schluessel], f"{name}.{schluessel} ist leer, obwohl die Aufzeichnung Zeilen hat"
@@ -457,12 +509,14 @@ def test_arxiv_wird_als_atom_feed_aufgezeichnet():
 # Die Gegenrichtung
 # --------------------------------------------------------------------------
 @pytest.mark.asyncio
-async def test_der_digest_haelt_den_ausfall_einer_quelle_aus(quelle):
+async def test_der_digest_haelt_den_ausfall_einer_quelle_aus(quelle_ohne_github):
     """Eine Quelle faellt aus, die anderen drei kommen trotzdem an.
 
-    Die GitHub-Suche antwortet aus dieser Umgebung mit 403 — der Digest muss
-    das als *unbekannt* ausweisen und nicht als null Treffer, und die anderen
-    Quellen nicht mitreissen.
+    GitHub bekommt die 403, mit der die Aufnahmeumgebung die Suche bis Oktober
+    2026 abwies — der Digest muss das als *unbekannt* ausweisen und nicht als
+    null Treffer, und die anderen Quellen nicht mitreissen. Frueher lieferte
+    die fehlende Aufzeichnung diesen Ausfall von selbst; seit es sie gibt, wird
+    er hier ausdruecklich verlangt.
     """
     daten = json.loads(await _fahre("digest"))
     assert "github" in daten["degraded_sources"], daten["degraded_sources"]

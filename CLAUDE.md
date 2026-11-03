@@ -723,7 +723,7 @@ Abfrage auf alle 50 Läufe erweitert wurde, statt die zwölf für den Bestand zu
 nehmen; dieselbe Klasse wie die drei gesperrten Zeitpunkte weiter oben, aus
 denen keine Dauer wird.
 
-**Fixtures: aufgezeichnet.** `tests/fixtures/` hält 44 echte Antworten;
+**Fixtures: aufgezeichnet.** `tests/fixtures/` hält 71 echte Antworten;
 Herkunft, Schlüssel, Auswahlregel und SHA-256 stehen je Datei in
 `tests/fixtures/PROVENANCE.md` — Portfolio-Konvention, gleich wie in
 `swisstopo-mcp` und `swiss-environment-mcp`. Neu aufzeichnen mit
@@ -735,9 +735,13 @@ aufzeichnen lassen.
 Die Zahl wandert, wenn sich die *Form* einer Anfrage ändert, nicht nur ihr
 Inhalt: Der Umbau von `arxiv_latest` auf eine OR-Abfrage (27.9.2026) liess
 `arxiv_latest_2.xml` gegenstandslos werden, weil es die zweite Einzelabfrage
-gar nicht mehr gibt; der Recorder hat es als veraltet entfernt. Diese Zahl
-prüft kein Gate — wer sie von Hand nachzieht, prüfe sie mit
-`ls tests/fixtures/*.json tests/fixtures/*.xml | wc -l`.
+gar nicht mehr gibt; der Recorder hat es als veraltet entfernt. Sie wandert
+aber auch mit dem Tag: Am 3.11.2026 sprang sie von 44 auf 71 — vier davon sind
+die neu erreichbare GitHub-Suche (Trending und die drei Topics des Digests),
+dreiundzwanzig gehören `hn_discussion`. Der Recorder nimmt die Diskussion zur
+jeweils obersten HN-Story, und die trug an dem Tag 16 direkte Kommentare statt
+einer Handvoll. Diese Zahl prüft kein Gate — wer sie von Hand nachzieht, prüfe
+sie mit `ls tests/fixtures/*.json tests/fixtures/*.xml | wc -l`.
 
 Eine Aufzeichnung je **Abfrage**, nicht je Endpunkt: `hn_top_stories` holt erst
 eine ID-Liste und dann jede Story einzeln, `hn_discussion` steigt den
@@ -756,16 +760,16 @@ Zwei Stolperstellen, die beim Aufzeichnen auffielen:
   bereits ein Kommentar. Wer die Story sucht, sucht nach `type == "story"` mit
   aufgezeichneten `kids`, nicht nach dem Dateinamen.
 
-**Befund — eine Quelle fehlt:** `api.github.com/search/repositories` antwortet
-aus der Aufnahmeumgebung mit HTTP 403 (`sessions are bound to their configured
+**Befund bis Oktober 2026 — eine Quelle fehlte:** `api.github.com/search/repositories`
+antwortete aus der Aufnahmeumgebung mit HTTP 403 (`sessions are bound to their configured
 repositories`). Gemessen, nicht aus der Meldung geschlossen: dieselbe 403 kommt
 mit und ohne Token, ohne `Server`-Header, ohne `x-github-request-id` und mit
 `documentation_url` auf docs.anthropic.com — die Anfrage erreicht GitHub nie.
 Gesperrt ist der **Pfad**, nicht der Host und nicht die Authentisierung; ein
 eigenes `GITHUB_TOKEN` ändert daran nichts, nötig ist eine Umgebung ohne diese
-Beschränkung. `github_trending_ai` bleibt deshalb bei handgeschriebenen Stubs;
-die Begründung steht als `NICHT_VON_HIER` im Recorder und wird von
-`test_die_gesperrte_quelle_steht_begruendet_im_recorder` festgehalten.
+Beschränkung. `github_trending_ai` blieb deshalb bei handgeschriebenen Stubs;
+die Begründung stand als `NICHT_VON_HIER` im Recorder und steht dort seit dem
+3.11.2026 als Kommentar — der Eintrag selbst ist leer, siehe unten.
 
 Der Aufruf steht trotzdem im `PLAN` — er war einmal herausgenommen, und damit
 war die Lücke zwar dokumentiert, aber selbst mit Zugriff nicht mehr zu
@@ -779,32 +783,52 @@ ganzen restlichen Plan mitnahm. Eng gefasst: eine 403 **ohne** diese Signatur
 läuft weiter durch den Backoff, sonst wäre eine einmal schliessende Quelle
 dauerhaft ohne Aufzeichnung.
 
-**Stand 3.11.2026: die Sperre ist weg, die Lücke noch nicht.** Dieselbe
-Signatur, die die Sperre belegt hatte, belegt jetzt das Gegenteil:
-`search/repositories` antwortet aus der Aufnahmeumgebung mit 200, mit
+**3.11.2026: die Lücke ist geschlossen.** Dieselbe Signatur, die die Sperre
+belegt hatte, belegte das Gegenteil: `search/repositories` antwortete mit 200,
 `Server: github.com`, einer `X-Github-Request-Id` und
-`X-Ratelimit-Resource: search` — zweimal gemessen, dazu `topic:mcp` als zweiter
-Pfad. Die Anfrage erreicht GitHub.
+`X-Ratelimit-Resource: search`. Der erste vollständige Lauf scheiterte noch an
+arXiv (dreimal 429, dann Timeouts); der zweite um 08:32 UTC lief durch und
+zeichnete die Trending-Suche und die drei Topics des Digests ohne Zutun mit
+auf — genau dafür stand der Aufruf die ganze Zeit im Plan. Eine reine
+GitHub-Aufzeichnung dazwischen wäre falsch gewesen: Das Aufräumen am Ende
+entfernt alles, was der Lauf nicht erzeugt, also die übrigen Belege.
 
-Aufgezeichnet ist trotzdem noch nichts, und zwar wegen einer anderen Quelle:
-Der Recorder schreibt einen ganzen Satz mit einem Aufnahmedatum, und arXiv
-hielt ihn am 3.11. dreimal auf (429, dann Timeouts). Eine reine
-GitHub-Aufzeichnung daneben wäre falsch — das Aufräumen am Ende entfernt alles,
-was der Lauf nicht erzeugt hat, also die übrigen 44 Belege.
+Die Aufzeichnung belegt nebenbei, was PR #85 nur aus der Spec hatte: Jede
+Antwort trägt `incomplete_results` als Wahrheitswert auf oberster Ebene.
+`test_die_aufgezeichnete_suche_traegt_incomplete_results` hält das fest —
+benennt GitHub das Feld um, fällt es beim nächsten Aufzeichnen auf, und nicht
+erst an einem zweiten leeren 29.10.
 
-**Was beim nächsten vollständigen Lauf rot wird, ist gewollt.** Mit einer
-simulierten `github_1.json` gemessen: `test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet`
-fällt, weil die Lücke geschlossen, aber in `NICHT_VON_HIER` noch begründet ist;
-`test_keine_aufzeichnung_liegt_unbenutzt_herum` fällt, weil kein Test die neue
-Aufzeichnung abspielt. Beides zwingt den Nachzug, der dann fällig ist:
-`github_trending_ai` aus `NICHT_VON_HIER` nehmen, `github` in die Tabelle
-`WERKZEUGE` von `tests/test_recorded_fixtures.py` aufnehmen und
-`test_die_gesperrte_quelle_steht_begruendet_im_recorder` durch einen Test
-ersetzen, der die Aufzeichnung verlangt. `GESPERRT` und die Tests dazu bleiben
-stehen: die Sperre kann wiederkommen, und dann soll der Lauf sie wieder
-überspringen statt abzubrechen. (Die zwei weiteren roten Tests der Simulation —
-Nachweis und Prüfsumme — gehören dem Platzhalter, der nicht in
-`PROVENANCE.md` stand; ein echter Lauf schreibt beides selbst.)
+Nachgezogen ist, was an der Lücke hing: `NICHT_VON_HIER` ist leer (die
+Begründung steht als Kommentar daneben), `github` fährt in `WERKZEUGE` mit, und
+an die Stelle des Tests, der die Lücke begründet verlangte, tritt
+`test_die_github_suche_ist_aufgezeichnet`. Die Ausnahme im Abspielen, die jede
+GitHub-Anfrage ohne Aufzeichnung still mit der 403 beantwortete, ist weg — sie
+hätte jetzt eine Anfrage verdeckt, deren Form nicht mehr zur Aufzeichnung
+passt. `GESPERRT` und seine Tests bleiben: Kehrt die Sperre zurück, überspringt
+der Lauf den Aufruf wieder, das Aufräumen entfernt die GitHub-Belege, und
+`test_jeder_aufruf_ohne_aufzeichnung_ist_als_gesperrt_begruendet` verlangt den
+Eintrag in `NICHT_VON_HIER` zurück.
+
+**Die Vorhersage war zur Hälfte falsch.** Vor dem Lauf stand hier, mit einer
+simulierten `github_1.json` gemessen, welche zwei Tests fallen würden. Einer
+fiel wie angekündigt. Der andere — `test_keine_aufzeichnung_liegt_unbenutzt_herum`
+— fiel nicht: Er prüft gegen `PROVENANCE.md`, nicht gegen die Replay-Tests,
+und gefallen war er in der Simulation nur, weil der Platzhalter dort fehlte.
+Stattdessen fiel ein Test, den niemand vorhergesagt hatte:
+`test_der_digest_haelt_den_ausfall_einer_quelle_aus` bekam seinen Ausfall bis
+dahin von der Lücke selbst geschenkt. Sein Zweck bleibt, die Voraussetzung ist
+weg; er verlangt den Ausfall jetzt ausdrücklich (`quelle_ohne_github`). Eine
+Simulation misst, was sie nachbildet — der Platzhalter bildete weder den
+Nachweis noch die Digest-Aufzeichnungen nach.
+
+Zwei Zusicherungen hingen an derselben Lücke und waren deshalb zu schwach:
+Vom Digest verlangte die Suite nur «mindestens drei gefüllte Quellen», jetzt
+alle vier. Und der neue Aufzeichnungs-Test verglich in seiner ersten Fassung
+nur den Suchausdruck — der Digest fragt `topic:llm stars:>=100` wörtlich gleich,
+nur nach `updated` sortiert, und so blieb der Test grün, als die
+Trending-Aufzeichnung fehlte. Die Gegenprobe hat es gezeigt; geprüft werden
+jetzt Ausdruck und Sortierung.
 
 Alles Weitere (Tool-Übersicht, Setup, Beispiele) steht in `README.md`,
 `EXAMPLES.md` und `audits/`.

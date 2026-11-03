@@ -1,0 +1,11 @@
+{
+  "by": "belval",
+  "id": 50344516,
+  "kids": [
+    50344618
+  ],
+  "parent": 50341174,
+  "text": "People have been talking about Sol 6.1 and maybe for coding they are equivalent, but Astra 6 is still miles ahead on just about everything else.<p>I had Astra agents build 3D models and gave them direct access to my 3D printer. The quality of their designs is much better than what Sol has been able to make for me. Enough so that I think Astra is a slightly different architecture&#x2F;encoder, not just a bigger model.<p>Picture, to get a sense of it: <a href=\"https:&#x2F;&#x2F;github.com&#x2F;Belval&#x2F;crossflow-fan&#x2F;blob&#x2F;main&#x2F;renders&#x2F;candidate-10-exploded.png\" rel=\"nofollow\">https:&#x2F;&#x2F;github.com&#x2F;Belval&#x2F;crossflow-fan&#x2F;blob&#x2F;main&#x2F;renders&#x2F;ca...</a>. This printed without any obvious defects (yes the fan blows air)",
+  "time": 1793657033,
+  "type": "comment"
+}

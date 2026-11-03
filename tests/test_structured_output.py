@@ -115,8 +115,9 @@ async def test_github_mit_nullwerten_besteht_das_schema() -> None:
     fehlenden Schluessel ab, nicht den leeren Wert. Mit strengem `str` im
     Modell waere jedes solche Repo ein gescheiterter Aufruf.
 
-    (GitHub laesst sich aus der Aufnahmeumgebung nicht aufzeichnen, siehe
-    `NICHT_VON_HIER` im Recorder — daher hier ein Stub.)"""
+    (Ein Stub, obwohl GitHub seit dem 3.11.2026 aufgezeichnet ist: ob eine
+    Aufzeichnung ein Repo mit `null` trifft, haengt vom Tag ab. Der Fall soll
+    nicht davon abhaengen, also wird er gezielt gebaut.)"""
     repo = {
         "full_name": "owner/repo",
         "description": None,

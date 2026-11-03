@@ -1,0 +1,11 @@
+{
+  "by": "AlexErrant",
+  "id": 50343034,
+  "kids": [
+    50344008
+  ],
+  "parent": 50341174,
+  "text": "As insane as this result is, next steps are even crazier:<p>&gt; We are currently building a benchmark and a harness for LLMs’ capability on Weight-Space Programming. We believe this will provide a standardized evaluation to measure and accelerate progress in Weight-Space Programming, turning what currently seems like black magic into a rigorous, reproducible engineering discipline.<p>Imagine this benchmark lasting as long as Arc-AGI-3 has. This could be the first foothold on hill-climbing mech-interp.",
+  "time": 1793650511,
+  "type": "comment"
+}

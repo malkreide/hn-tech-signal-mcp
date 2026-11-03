@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Eine abgebrochene GitHub-Suche kam als leeres Topic an.** GitHub bricht eine
+  Suche an seinem Zeitlimit ab und liefert dann, was es bis dahin hatte — mit
+  HTTP 200 und `incomplete_results: true`. `github_trending_ai` warf das Feld
+  weg; das Modell hielt `count: 0` für den Bestand des Topics. Am 29.10.2026
+  kam für `topic:llm` eine leere Liste an, am Tag danach standen dort 5564
+  Repos (ob aus diesem Grund, ist nicht gemessen — eben weil das Feld fehlte).
+  Jetzt trägt die Antwort `incomplete_results: true` und einen `note`, der
+  Digest führt ein abgebrochenes Topic unter `incomplete_topics`, und ein
+  abgebrochenes Ergebnis wird nicht gecacht. Ein Abbruch ist kein Ausfall:
+  GitHub erscheint deshalb nicht unter `degraded_sources`. (#85)
+
+### Changed
+
+- **`outputSchema` von `github_trending_ai`** führt zwei neue, optionale Felder:
+  `incomplete_results` und `note`. Beide stehen nur da, wenn GitHub die Suche
+  abgebrochen hat. (#85)
+
+### Tests
+
+- **Die GitHub-Suche ist erstmals aufgezeichnet.** Bis Oktober 2026 wies die
+  Aufnahmeumgebung den Pfad mit 403 ab, `github_trending_ai` lief nur gegen
+  handgeschriebene Stubs. Am 3.11.2026 erreichte die Anfrage GitHub wieder; die
+  Trending-Suche und die drei Topics des Digests liegen jetzt als echte
+  Antworten in `tests/fixtures/`, und jede trägt `incomplete_results` als
+  Wahrheitswert — der Feldname, auf den sich der Fix oben stützt, ist damit
+  belegt statt aus der Spec übernommen.
+
 ## [0.5.0] — 2026-09-27
 
 Erster Release seit 0.4.1. **In 0.4.1 ist `tech_signal_digest` defekt** (jede

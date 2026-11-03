@@ -1,0 +1,14 @@
+{
+  "by": "NitpickLawyer",
+  "id": 50342153,
+  "kids": [
+    50342942,
+    50343295,
+    50343885,
+    50346940
+  ],
+  "parent": 50341174,
+  "text": "&gt; As a result, Astra spots and fixes a common failure of tiny reasoning models: they loop [13]. When the base model loops, it repeats the same text and rarely reaches an answer (85 of its first 96 practice answers ran to the 32,768-token limit). Astra traced the looping to one direction written by the MLPs of layers 15 and 19, and subtracted that direction from 64 output columns in each (131,072 weights), much like removing a behavior by deleting a single direction from a model’s weights<p>HA! Now that&#x27;s cool. Not necessarily the improvements, those are ancient and probably overtrained benchmarks, but it&#x27;s so cool that the model found a singular direction for this &quot;loop bug&quot;. I imagine it could possibly do much the same thing in finding other &quot;single directions&quot; on a variety of topics (if allowed by guardrails). This is really really cool, especially for the mechinterp folks.",
+  "time": 1793647235,
+  "type": "comment"
+}

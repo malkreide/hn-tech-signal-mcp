@@ -1,29 +1,13 @@
 {
-  "by": "ksec",
-  "descendants": 103,
-  "id": 49854693,
+  "by": "teleforce",
+  "descendants": 1,
+  "id": 50347464,
   "kids": [
-    49856217,
-    49855883,
-    49856296,
-    49857644,
-    49859457,
-    49855949,
-    49858970,
-    49857344,
-    49861759,
-    49855333,
-    49855777,
-    49858301,
-    49860515,
-    49855293,
-    49864647,
-    49855253,
-    49855602
+    50349380
   ],
-  "score": 400,
-  "time": 1790414021,
-  "title": "Fifteen years later, the Apple Cards origin story",
+  "score": 23,
+  "time": 1793674724,
+  "title": "Open-Source 5G Ran Platforms: A Dual Perspective on Performance and Capabilities",
   "type": "story",
-  "url": "https://lexontech.org/fifteen-years-later-the-apple-cards-origin-story"
+  "url": "https://arxiv.org/abs/2608.25820"
 }

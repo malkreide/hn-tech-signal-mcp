@@ -1,0 +1,13 @@
+{
+  "by": "_bobm",
+  "id": 50343628,
+  "kids": [
+    50345012,
+    50344070,
+    50343883
+  ],
+  "parent": 50341174,
+  "text": "I think the subfield has been there for a long time. See a small section of papers on the topic of generating dynamic weights during inference, predicting weights from network architecture, and learning the distribution of previously trained network parameters, just to name a few keywords:<p>Parameter Prediction for Unseen Deep Architectures [1]<p>NeuroGen: Neural Network Parameter Generation via Large Language Models [2]<p>Diffusion-Based Neural Network Weights Generation [3]<p>The critical thing to me is that Astra is capable of doing it. I don&#x27;t know if it was trained to do so.<p>All this does not make it any less crazy in my books. And I still don&#x27;t know how I can sleep easy tonight.<p>[1] <a href=\"https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2110.13100\" rel=\"nofollow\">https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2110.13100</a><p>[2] <a href=\"https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2505.12470\" rel=\"nofollow\">https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2505.12470</a><p>[3] <a href=\"https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2402.18153\" rel=\"nofollow\">https:&#x2F;&#x2F;arxiv.org&#x2F;abs&#x2F;2402.18153</a>",
+  "time": 1793653039,
+  "type": "comment"
+}

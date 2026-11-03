@@ -1,0 +1,13 @@
+{
+  "by": "itkovian_",
+  "id": 50343394,
+  "kids": [
+    50349027,
+    50343646,
+    50343415
+  ],
+  "parent": 50341174,
+  "text": "This was shocking to me; but on reading it makes far more sense.<p>- the primary experiments are on  small policy networks - they are compressed dynamic system models. The observation and action space can be read off. It’s not surprising to me that these types of networks can be used to identify the env they were trained on<p>- the exps on actual llms remove looping behaviour and that’s it - from article “but it could not add an ability the model lacked”<p>I’d say this is fortunate because if llms could do the latter, rsi would be immediate. It may be possible we simply need bigger and better edit models, but at least from the experiments there doesn’t seem to be any indication that is imminently about to work.<p>Conceptually incredibly interesting non the less.",
+  "time": 1793652032,
+  "type": "comment"
+}
