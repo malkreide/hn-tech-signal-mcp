@@ -178,6 +178,14 @@ class GithubTrendingOutput(_Out):
     total_found: int
     count: int
     repos: list[GithubRepo]
+    incomplete_results: Optional[bool] = Field(
+        default=None,
+        description=(
+            "Present only when GitHub stopped the search at its time limit; count is "
+            "then what it found by then and not the size of the topic"
+        ),
+    )
+    note: Optional[str] = None
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +234,11 @@ class DigestLobstersSection(_DigestSection):
 class DigestGithubSection(_DigestSection):
     repos: list[DigestGithubRepo]
     incomplete_topics: Optional[list[str]] = Field(
-        default=None, description="Topics whose sweep failed; the section is short by them"
+        default=None,
+        description=(
+            "Topics whose sweep failed or that GitHub cut off at its search time limit; "
+            "the section may be short by them"
+        ),
     )
 
 

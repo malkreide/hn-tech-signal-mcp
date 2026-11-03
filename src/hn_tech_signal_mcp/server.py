@@ -1513,6 +1513,11 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
     Returns:
         str: JSON with topic, total_found, count, repos[].
              Each repo: name, description, stars, forks, language, topics, updated_at, url.
+
+             When GitHub stopped the search at its time limit, the JSON also
+             carries incomplete_results: true and a note. count is then what
+             GitHub found before it stopped — possibly 0 — and says nothing
+             about how many repositories the topic really has.
     """
     cache_key = f"github|{params.topic}|{params.sort}|{params.min_stars}|{params.limit}"
     if cached := _cache_get(cache_key, "github"):
@@ -1538,19 +1543,33 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
             }
             for r in data.get("items", [])
         ]
-        result = json.dumps(
-            {
-                "topic": params.topic,
-                "sort": params.sort,
-                "fetched_at": _now_iso(),
-                "total_found": data.get("total_count", 0),
-                "count": len(repos),
-                "repos": repos,
-            },
-            indent=2,
-            ensure_ascii=False,
-        )
-        _cache_set(cache_key, result)
+        nutzlast: dict[str, Any] = {
+            "topic": params.topic,
+            "sort": params.sort,
+            "fetched_at": _now_iso(),
+            "total_found": data.get("total_count", 0),
+            "count": len(repos),
+            "repos": repos,
+        }
+        # GitHub bricht eine Suche an seinem Zeitlimit ab, liefert dann die
+        # bis dahin gefundenen Treffer — womoeglich keinen — mit HTTP 200 und
+        # setzt `incomplete_results`. Ohne den Hinweis haelt das Modell eine
+        # leere Liste fuer den Bestand des Topics. Am 29.10.2026 kam fuer
+        # `topic:llm` eine leere Liste an, wo am Tag danach 5564 standen — ob
+        # aus diesem Grund, ist nicht gemessen: das Feld wurde damals verworfen.
+        abgeschnitten = bool(data.get("incomplete_results"))
+        if abgeschnitten:
+            nutzlast["incomplete_results"] = True
+            nutzlast["note"] = (
+                f"GitHub stopped this search at its time limit and returned only the "
+                f"{len(repos)} match(es) found by then. This is not the size of the "
+                f"topic '{params.topic}' — ask again for a complete list."
+            )
+        result = json.dumps(nutzlast, indent=2, ensure_ascii=False)
+        # Eine abgeschnittene Antwort wird nicht gecacht: sie ueberlebte sonst
+        # die Stoerung, die sie beschreibt — dieselbe Regel wie beim Digest.
+        if not abgeschnitten:
+            _cache_set(cache_key, result)
         return result
     except Exception as e:
         return _handle_error(e, "GitHub")
@@ -1564,12 +1583,15 @@ async def github_trending_ai(params: GithubTrendingAiInput) -> str:
 async def _fetch_digest_github(per_topic: int) -> tuple[list[dict], list[str]]:
     """Search GitHub once per topic and merge the hits.
 
-    Returns the merged repositories and the topics that failed. A caller that
-    drops the second half reports a short list as a complete one — the topics
-    are the difference between "nothing new" and "we never asked".
+    Returns the merged repositories and the topics that came back incomplete:
+    those whose search failed, and those GitHub cut off at its search time
+    limit (`incomplete_results`). A caller that drops the second half reports
+    a short list as a complete one — the topics are the difference between
+    "nothing new" and "we never asked" or "GitHub stopped looking".
 
     Raises the first error if every topic failed, so a total GitHub outage
-    still surfaces as a failed source rather than an empty result set.
+    still surfaces as a failed source rather than an empty result set. A cut-off
+    topic is not a failure: it answered, with what it found in time.
     """
     results = await asyncio.gather(
         *[
@@ -1589,13 +1611,17 @@ async def _fetch_digest_github(per_topic: int) -> tuple[list[dict], list[str]]:
 
     merged: dict[str, dict] = {}
     failed: list[str] = []
+    incomplete: list[str] = []
     first_error: Optional[BaseException] = None
 
     for topic, result in zip(DIGEST_GITHUB_TOPICS, results):
         if isinstance(result, BaseException):
             failed.append(topic)
+            incomplete.append(topic)
             first_error = first_error or result
             continue
+        if result.get("incomplete_results"):
+            incomplete.append(topic)
         for repo in result.get("items", []):
             # A repo carrying two of the topics arrives twice; the first hit
             # wins, which keeps the 'updated' order of the earlier topic.
@@ -1604,7 +1630,7 @@ async def _fetch_digest_github(per_topic: int) -> tuple[list[dict], list[str]]:
     if len(failed) == len(DIGEST_GITHUB_TOPICS) and first_error is not None:
         raise first_error
 
-    return list(merged.values()), failed
+    return list(merged.values()), incomplete
 
 
 @_tool(
@@ -1642,7 +1668,8 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
              and an 'error' describing why, and its key is listed in
              degraded_sources — treat its absence as unknown, not as zero.
              The GitHub section may carry 'incomplete_topics' when part of
-             the topic sweep failed. Only if all four sources fail does this
+             the topic sweep failed or GitHub cut a topic's search off at its
+             time limit. Only if all four sources fail does this
              tool return a plain error string instead of JSON.
     """
     focus_lower = params.focus.lower() if params.focus else None
@@ -1750,13 +1777,13 @@ async def tech_signal_digest(params: TechSignalDigestInput) -> str:
     if len(degraded) == len(sources):
         return errors[0]
 
-    # A GitHub sweep that lost some topics is short by however much those
-    # topics held. Saying so is the difference between a thin digest and a
-    # wrong one.
+    # A GitHub sweep that lost some topics — failed, or cut off at GitHub's
+    # search time limit — is short by however much those topics held. Saying
+    # so is the difference between a thin digest and a wrong one.
     if not isinstance(gh_raw, BaseException):
-        _, failed_topics = gh_raw
-        if failed_topics:
-            sources["github"]["incomplete_topics"] = failed_topics
+        _, incomplete_topics = gh_raw
+        if incomplete_topics:
+            sources["github"]["incomplete_topics"] = incomplete_topics
 
     digest = {
         "generated_at": _now_iso(),
